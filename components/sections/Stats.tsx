@@ -58,7 +58,7 @@ export default function Stats() {
                 )}
                 <div className="relative z-10">
                   <div className="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-text-primary mb-1">
-                    {stat.isDecimal ? (
+                    {"isDecimal" in stat && stat.isDecimal ? (
                       <>
                         $<AnimatedCounter
                           target={stat.value * 10}
