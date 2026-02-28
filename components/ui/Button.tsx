@@ -20,7 +20,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       className = "",
       shimmer = false,
-      ...props
+      onDrag: _onDrag,
+      onDragStart: _onDragStart,
+      onDragEnd: _onDragEnd,
+      onDragEnter: _onDragEnter,
+      onDragExit: _onDragExit,
+      onDragLeave: _onDragLeave,
+      onDragOver: _onDragOver,
+      ...rest
     },
     ref
   ) => {
@@ -50,7 +57,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={reducedMotion ? {} : { scale: 1.02 }}
         whileTap={reducedMotion ? {} : { scale: 0.98 }}
         transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        {...props}
+        {...(rest as Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onDrag" | "onDragStart" | "onDragEnd" | "onDragEnter" | "onDragExit" | "onDragLeave" | "onDragOver">)}
       >
         {shimmer && variant === "primary" && (
           <span
