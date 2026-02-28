@@ -18,7 +18,7 @@ export default function Testimonials() {
       setActiveIndex((i) => (i + 1) % testimonials.length);
     }, 5000);
     return () => clearInterval(t);
-  }, [reducedMotion, testimonials.length]);
+  }, [reducedMotion]);
 
   return (
     <section id="testimonials" className="relative py-24 overflow-hidden">

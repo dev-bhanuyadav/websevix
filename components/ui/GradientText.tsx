@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 interface GradientTextProps {
   children: React.ReactNode;
   className?: string;
@@ -14,15 +12,15 @@ export default function GradientText({
   animate = false,
 }: GradientTextProps) {
   return (
-    <motion.span
+    <span
       className={`
         bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent
-        ${animate ? "bg-[length:200%_auto] animate-gradient-shift" : ""}
+        ${animate ? "animate-gradient-shift" : ""}
         ${className}
       `}
       style={animate ? { backgroundSize: "200% auto" } : undefined}
     >
       {children}
-    </motion.span>
+    </span>
   );
 }

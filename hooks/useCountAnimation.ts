@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useInView } from "framer-motion";
-import { useRef } from "react";
 
-const easeOutExpo = (t: number) =>
+const easeOutExpo = (t: number): number =>
   t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 
 export function useCountAnimation(
@@ -18,24 +17,21 @@ export function useCountAnimation(
   const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (!startOnView || (inView && !hasAnimated.current)) {
-      hasAnimated.current = true;
-      const startTime = startOnView && inView ? Date.now() : 0;
-      const startValue = 0;
+    if (startOnView && !inView) return;
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
 
-      const animate = () => {
-        const now = Date.now();
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = easeOutExpo(progress);
-        const current = Math.floor(eased * target);
-        setCount(current);
-        if (progress < 1) requestAnimationFrame(animate);
-      };
+    const startTime = Date.now();
 
-      if (startOnView && !inView) return;
-      requestAnimationFrame(animate);
-    }
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutExpo(progress);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
   }, [target, duration, inView, startOnView]);
 
   return { count, ref };
