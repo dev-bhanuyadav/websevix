@@ -70,8 +70,8 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 1.0, ease: EXPO, delay: 0.3 }}
           >
-            Ready for your website?{" "}
-            <span className="text-gradient-live">Order now.</span>
+            Let's build your web.{" "}
+            <span className="text-gradient-live">Chat with us.</span>
           </motion.h2>
 
           <motion.p
@@ -81,7 +81,7 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 1.0, ease: EXPO, delay: 0.4 }}
           >
-            Place your order, pay securely with Razorpay, and chat with us on live chat. We’ll build and deliver your site — no developer hunting.
+            Share your idea on live chat. We'll understand what you need and build your site. No pressure — just a clear, human conversation.
           </motion.p>
 
           <motion.div
@@ -91,11 +91,11 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 1.0, ease: EXPO, delay: 0.5 }}
           >
-            <Link href="#signup" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
-              Place an Order <ArrowRight className="w-4.5 h-4.5" />
+            <Link href="#contact" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
+              Chat with us <ArrowRight className="w-4.5 h-4.5" />
             </Link>
-            <Link href="#contact" className="btn-ghost inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
-              Live Chat
+            <Link href="#how-it-works" className="btn-ghost inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
+              How it works
             </Link>
           </motion.div>
 
@@ -106,7 +106,7 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 0.9, ease: EXPO, delay: 0.7 }}
           >
-            Pay with Razorpay · Live chat support · We build for you
+            Chat with us · We build your web · Transparent, step by step
           </motion.p>
         </motion.div>
       </div>

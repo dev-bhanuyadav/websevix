@@ -1,36 +1,36 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileEdit, CreditCard, MessageSquare, ArrowRight } from "lucide-react";
+import { MessageSquare, FileCheck, Wrench, ArrowRight } from "lucide-react";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 const steps = [
   {
     num: "01",
-    Icon: FileEdit,
-    title: "Place Your Order",
-    desc: "Tell us what you need — type of website, pages, features. We'll send you a clear quote. No hidden costs.",
-    tag: "Free quote",
+    Icon: MessageSquare,
+    title: "Share Your Idea",
+    desc: "Tell us what you need — over live chat. We listen, ask the right questions, and understand your vision. No forms, no friction. Just a clear conversation.",
+    tag: "We're here to listen",
     color: "text-indigo-400",
     bg: "bg-indigo-500/10 border-indigo-500/18",
     glow: "rgba(99,102,241,0.12)",
   },
   {
     num: "02",
-    Icon: CreditCard,
-    title: "Pay with Razorpay",
-    desc: "Pay securely with Razorpay — UPI, card, net banking. Your payment is safe and we only start work after you're confirmed.",
-    tag: "Secure payment",
+    Icon: FileCheck,
+    title: "Align & Confirm",
+    desc: "We share a clear plan and scope. When you're ready, we confirm next steps. Simple and transparent — so you know exactly what you're getting.",
+    tag: "No surprises",
     color: "text-violet-400",
     bg: "bg-violet-500/10 border-violet-500/18",
     glow: "rgba(139,92,246,0.12)",
   },
   {
     num: "03",
-    Icon: MessageSquare,
-    title: "Live Chat & We Build",
-    desc: "Chat with us in real time. We build your website, share updates, and deliver. No third-party developers — just us.",
+    Icon: Wrench,
+    title: "We Build, You Stay in the Loop",
+    desc: "We build your website. You stay updated over chat — see progress, share feedback, and get your site delivered. Just us, no middlemen.",
     tag: "We build for you",
     color: "text-cyan-400",
     bg: "bg-cyan-500/10 border-cyan-500/18",
@@ -42,10 +42,8 @@ export default function HowItWorks() {
   return (
     <section id="how-it-works" className="section relative overflow-hidden">
       <div className="sep" />
-
       <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-20">
 
-        {/* Header */}
         <motion.div
           className="text-center mb-18 max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 40 }}
@@ -63,16 +61,15 @@ export default function HowItWorks() {
             How it works
           </motion.p>
           <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.9rem] text-snow leading-[1.1] mb-5">
-            Order, pay, chat.
+            Chat with us.
             <br />
-            <span className="text-gradient">We build your site.</span>
+            <span className="text-gradient">We build your web.</span>
           </h2>
           <p className="text-slate text-base leading-[1.8]">
-            No marketplace, no choosing developers. You order, pay with Razorpay, chat with us — we build and deliver.
+            Share your idea, stay in touch over live chat. We build and deliver — no marketplace, no runaround.
           </p>
         </motion.div>
 
-        {/* Animated connector */}
         <div className="hidden md:block relative h-0 mb-0 z-10">
           <div className="absolute" style={{ top: "3.5rem", left: "calc(16.66% + 2rem)", right: "calc(16.66% + 2rem)", height: "1px" }}>
             <motion.div
@@ -86,7 +83,6 @@ export default function HowItWorks() {
           </div>
         </div>
 
-        {/* Step cards */}
         <div className="grid md:grid-cols-3 gap-5 lg:gap-6">
           {steps.map((step, i) => (
             <motion.div
@@ -97,12 +93,10 @@ export default function HowItWorks() {
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 1.0, ease: EXPO, delay: i * 0.18 }}
             >
-              {/* Hover glow underneath */}
               <div
                 className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
                 style={{ background: `radial-gradient(circle at 50% 50%, ${step.glow}, transparent 75%)`, filter: "blur(16px)" }}
               />
-
               <div className="card card-hover h-full p-7 flex flex-col gap-5 relative">
                 <div className="flex items-start justify-between">
                   <div className={`w-12 h-12 rounded-xl border ${step.bg} flex items-center justify-center transition-transform duration-500 group-hover:scale-110`}>
@@ -129,7 +123,6 @@ export default function HowItWorks() {
           ))}
         </div>
 
-        {/* CTA link */}
         <motion.div
           className="flex justify-center mt-12"
           initial={{ opacity: 0 }}
@@ -137,8 +130,8 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.9, ease: EXPO, delay: 0.5 }}
         >
-          <a href="#signup" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-500 group">
-            Place your order now
+          <a href="#contact" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-500 group">
+            Start the conversation
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-500" style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }} />
           </a>
         </motion.div>

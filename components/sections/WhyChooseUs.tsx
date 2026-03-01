@@ -6,11 +6,10 @@ import { CreditCard, MessageSquare, Wrench, FileCheck, Headphones } from "lucide
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 const features = [
-  { Icon: CreditCard,    title: "Razorpay Payments",  desc: "Pay securely with UPI, card, or net banking. Razorpay keeps your payment safe.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
-  { Icon: MessageSquare, title: "Live Chat",         desc: "Chat with us in real time. Share files, ask questions, get updates — all in one place.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
-  { Icon: Wrench,       title: "We Build for You",  desc: "No marketplace, no picking developers. We take your order and build your website ourselves.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/18" },
-  { Icon: FileCheck,    title: "Clear Deliverables", desc: "We agree on scope and phases. You know exactly what you're getting and when.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
-  { Icon: Headphones,   title: "Support When You Need", desc: "Stuck or want changes? Reach out on live chat. We're here to help.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
+  { Icon: MessageSquare, title: "Live Chat",           desc: "Talk to us in real time. Share ideas, files, and feedback. We're here — no waiting for email replies.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
+  { Icon: Wrench,       title: "We Build Your Web",  desc: "We take your brief and build your website. No marketplace, no third-party developers. Just us.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
+  { Icon: FileCheck,    title: "Clear & Transparent", desc: "We agree on scope and phases upfront. You always know what's next and what you're getting.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/18" },
+  { Icon: Headphones,   title: "Here When You Need",  desc: "Questions or changes? Jump on live chat. We keep the conversation going until you're happy.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
 ];
 
 export default function WhyChooseUs() {
@@ -32,16 +31,16 @@ export default function WhyChooseUs() {
         >
           <p className="text-xs font-semibold text-indigo-400 uppercase tracking-[0.22em] mb-4">Why Websevix</p>
           <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.9rem] text-snow leading-[1.1] mb-5">
-            Simple process.{" "}
-            <span className="text-gradient">We do the work.</span>
+            Chat with us.{" "}
+            <span className="text-gradient">We build your web.</span>
           </h2>
           <p className="text-slate text-base leading-[1.8]">
-            Order, pay with Razorpay, chat with us. We build your website — no middlemen, no developer hunting.
+            We listen over live chat, build your site, and keep you in the loop. No runaround — just a clear path from idea to launch.
           </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.slice(0, 5).map((f, i) => (
+          {features.map((f, i) => (
             <motion.div
               key={f.title}
               className="card card-hover p-6 group"

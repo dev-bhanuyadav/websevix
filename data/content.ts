@@ -7,31 +7,31 @@ export const navLinks = [
 
 export const heroContent = {
   badge: "Professional Web Development",
-  headline: "Order Your Website. We Build It.",
+  headline: "Chat With Us. We Build Your Web.",
   subheadline:
-    "Place your order, pay securely with Razorpay, chat with us on live chat — we build your website and deliver. Simple.",
-  ctaPrimary: "Place an Order",
-  ctaSecondary: "How It Works",
+    "Share your idea over live chat. We understand what you need, build your website, and deliver. No runaround — just a clear conversation and a site you'll love.",
+  ctaPrimary: "Chat with us",
+  ctaSecondary: "How it works",
 } as const;
 
 export const howItWorksSteps = [
   {
     number: 1,
-    title: "Place Your Order",
-    description: "Tell us what you need. We'll send you a clear quote. No hidden costs.",
-    icon: "FileEdit",
+    title: "Share Your Idea",
+    description: "Tell us what you need over live chat. We listen and understand your vision.",
+    icon: "MessageSquare",
   },
   {
     number: 2,
-    title: "Pay with Razorpay",
-    description: "Pay securely with Razorpay — UPI, card, net banking. We start after you're confirmed.",
-    icon: "CreditCard",
+    title: "Align & Confirm",
+    description: "We share a clear plan. When you're ready, we confirm next steps. No surprises.",
+    icon: "Handshake",
   },
   {
     number: 3,
-    title: "Live Chat & We Build",
-    description: "Chat with us in real time. We build your website and deliver. No third-party developers.",
-    icon: "MessageSquare",
+    title: "We Build, You Stay in the Loop",
+    description: "We build your site. You get updates over chat and your site delivered. Just us.",
+    icon: "Wrench",
   },
 ] as const;
 
@@ -53,9 +53,9 @@ export const whyChooseUsFeatures = [
 ] as const;
 
 export const ctaContent = {
-  headline: "Ready for your website? Order now.",
-  subheadline: "Place your order, pay with Razorpay, and chat with us. We'll build and deliver your site.",
-  buttonText: "Place an Order",
+  headline: "Let's build your web. Chat with us.",
+  subheadline: "Share your idea on live chat. We'll understand what you need and build your site. No pressure.",
+  buttonText: "Chat with us",
 } as const;
 
 export const footerLinks = {

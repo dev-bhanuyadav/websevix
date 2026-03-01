@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, MessageSquare, CreditCard, Wrench } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageSquare, Wrench } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /* ─── Easing ─── */
@@ -10,8 +10,8 @@ const EXPO   = [0.16, 1, 0.3, 1] as const;
 const SMOOTH = [0.25, 0.1, 0.25, 1] as const;
 
 /* ─── Hero words ─── */
-const LINE_1 = ["Order", "Your", "Website."];
-const LINE_2 = ["We", "Build", "It."];
+const LINE_1 = ["Chat", "With", "Us."];
+const LINE_2 = ["We", "Build", "Your", "Web."];
 
 /* ─── Mockup: order progress ─── */
 const PHASES = [
@@ -138,9 +138,9 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.0, ease: EXPO, delay: 1.7 }}
         >
-          Place your order, pay securely with{" "}
-          <span className="text-silver font-medium">Razorpay</span>, chat with us on live chat —
-          we build your website and deliver. Simple.
+          Share your idea over live chat. We understand what you need,{" "}
+          <span className="text-silver font-medium">build your website</span>, and deliver.
+          No runaround — just a clear, human conversation and a site you’ll love.
         </motion.p>
 
         {/* CTAs */}
@@ -150,11 +150,11 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.0, ease: EXPO, delay: 1.9 }}
         >
-          <Link href="#signup" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
-            Place an Order <ArrowRight className="w-4 h-4" />
+          <Link href="#contact" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
+            Chat with us <ArrowRight className="w-4 h-4" />
           </Link>
           <Link href="#how-it-works" className="btn-ghost inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
-            See How It Works
+            How it works
           </Link>
         </motion.div>
 
@@ -166,9 +166,9 @@ export default function Hero() {
           transition={{ duration: 1.0, ease: EXPO, delay: 2.1 }}
         >
           {[
-            { icon: CreditCard, text: "Pay with Razorpay" },
-            { icon: MessageSquare, text: "Live chat support" },
-            { icon: Wrench, text: "We build for you" },
+            { icon: MessageSquare, text: "Live chat — we're here" },
+            { icon: Wrench, text: "We build your web" },
+            { icon: CheckCircle2, text: "Transparent, step by step" },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-1.5 text-sm text-slate">
               <Icon className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
@@ -228,8 +228,8 @@ export default function Hero() {
                         <p className="text-[11px] text-slate mt-0.5">Landing + 5 pages · Responsive</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] text-slate mb-0.5">Paid via Razorpay</p>
-                        <p className="font-display font-bold text-snow text-lg">₹24,000</p>
+                        <p className="text-[10px] text-slate mb-0.5">Order #1024</p>
+                        <p className="font-display font-bold text-snow text-lg">In progress</p>
                       </div>
                     </div>
 
@@ -285,10 +285,10 @@ export default function Hero() {
 
                   <div className="bg-emerald-500/5 rounded-xl border border-emerald-500/20 p-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                      <p className="text-[11px] font-semibold text-snow">Razorpay</p>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <p className="text-[11px] font-semibold text-snow">Confirmed</p>
                     </div>
-                    <p className="text-xs font-bold text-emerald-400">Payment received</p>
+                    <p className="text-xs text-emerald-400/90">We're on it</p>
                   </div>
                 </div>
               </div>

@@ -12,7 +12,7 @@ const testimonials = [
     initials: "SC",
     grad: "from-indigo-500 to-violet-400",
     stars: 5,
-    quote: "I placed an order, paid via Razorpay, and chatted with the team throughout. They built our landing page and delivered on time. Simple and professional.",
+    quote: "I shared our idea on chat, and they got it right away. They built our landing page, kept us updated throughout, and delivered on time. Felt like working with a partner, not a vendor.",
     tag: "Landing page",
   },
   {
@@ -21,7 +21,7 @@ const testimonials = [
     initials: "MJ",
     grad: "from-violet-500 to-cyan-400",
     stars: 5,
-    quote: "No hassle of finding a developer. I told them what I needed, paid with Razorpay, and used live chat for updates. Got my e-commerce site delivered as promised.",
+    quote: "No hassle — I told them what I needed over chat, they built our e-commerce site and we stayed in the loop the whole time. Clear communication and a site we're proud of.",
     tag: "E-commerce site",
   },
   {
@@ -30,7 +30,7 @@ const testimonials = [
     initials: "PS",
     grad: "from-cyan-500 to-indigo-400",
     stars: 5,
-    quote: "We order all our client websites from Websevix. Razorpay for payments, live chat for coordination — and they build everything. Smooth experience every time.",
+    quote: "We get all our client sites built through Websevix. Live chat makes coordination easy, and they actually build everything in-house. Reliable and smooth every time.",
     tag: "Multiple projects",
   },
 ];

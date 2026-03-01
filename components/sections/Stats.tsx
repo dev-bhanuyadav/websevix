@@ -1,15 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CreditCard, MessageSquare, Wrench, FileCheck } from "lucide-react";
+import { MessageSquare, Wrench, FileCheck, CheckCircle2 } from "lucide-react";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 const promises = [
-  { Icon: CreditCard,  title: "Razorpay Secured",      desc: "All payments through Razorpay. Safe and reliable.", color: "text-indigo-400",  bg: "bg-indigo-500/10 border-indigo-500/20" },
-  { Icon: MessageSquare, title: "Live Chat",           desc: "Chat with us in real time. No waiting for email replies.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20" },
-  { Icon: Wrench,      title: "We Build It",           desc: "We build your website. No third-party developers to choose.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/20" },
-  { Icon: FileCheck,   title: "Clear Scope & Delivery", desc: "Agreed scope, clear phases. You know what you're getting.", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
+  { Icon: MessageSquare, title: "Live Chat",            desc: "We're here when you are. Share ideas, get updates, ask anything — in real time.", color: "text-indigo-400",  bg: "bg-indigo-500/10 border-indigo-500/20" },
+  { Icon: Wrench,       title: "We Build Your Web",    desc: "We take your brief and build. No marketplace, no picking developers. Just us.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20" },
+  { Icon: FileCheck,    title: "Clear & Transparent",  desc: "Agreed scope and phases. You always know what's next and what you're getting.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/20" },
+  { Icon: CheckCircle2, title: "Here When You Need",   desc: "Stuck or want to change something? Reach out on chat. We'll sort it together.", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
 ];
 
 export default function Stats() {
