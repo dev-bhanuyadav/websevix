@@ -10,42 +10,40 @@ import { z } from "zod";
 
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60;
 
-const registerSchema = z.object({
-  email:     z.string().email(),
-  firstName: z.string().min(2).max(50),
-  lastName:  z.string().min(2).max(50),
-  phone:     z.string().min(7).max(20),
-  password:  z.string().min(8).max(72),
-  role:      z.enum(["client", "developer"]).default("client"),
+const loginSchema = z.object({
+  email:    z.string().email(),
+  password: z.string().min(1),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const body   = await request.json();
-    const parsed = registerSchema.safeParse(body);
+    const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonResponse({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, 400);
+      return jsonResponse({ error: "Email and password are required" }, 400);
     }
 
-    const { email, firstName, lastName, phone, password, role } = parsed.data;
+    const { email, password } = parsed.data;
 
     await connectDB();
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existing) {
-      return jsonResponse({ error: "Email already registered" }, 409);
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (!user) {
+      // Generic message — don't reveal if email exists
+      return jsonResponse({ error: "Invalid email or password" }, 401);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    if (!user.password) {
+      return jsonResponse({ error: "No password set for this account. Please contact support." }, 401);
+    }
 
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      phone,
-      role,
-      isVerified: true,
-    });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return jsonResponse({ error: "Invalid email or password" }, 401);
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
 
     const accessToken  = await signAccessToken({ userId: user._id.toString(), email: user.email, role: user.role });
     const refreshToken = await signRefreshToken({ userId: user._id.toString() });
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     return jsonResponse({ success: true, accessToken, user: toPublic(user) });
   } catch (e) {
-    console.error("[register]", e);
-    return jsonResponse({ error: "Registration failed. Please try again." }, 500);
+    console.error("[login]", e);
+    return jsonResponse({ error: "Login failed. Please try again." }, 500);
   }
 }

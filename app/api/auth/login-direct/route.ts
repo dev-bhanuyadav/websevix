@@ -1,51 +1,28 @@
 import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/mongodb";
 import { User, toPublic } from "@/models/User";
 import { RefreshToken } from "@/models/RefreshToken";
 import { signAccessToken, signRefreshToken } from "@/lib/jwt";
 import { jsonResponse } from "@/lib/api";
 import { cookies } from "next/headers";
-import { z } from "zod";
 
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60;
 
-const registerSchema = z.object({
-  email:     z.string().email(),
-  firstName: z.string().min(2).max(50),
-  lastName:  z.string().min(2).max(50),
-  phone:     z.string().min(7).max(20),
-  password:  z.string().min(8).max(72),
-  role:      z.enum(["client", "developer"]).default("client"),
-});
-
 export async function POST(request: NextRequest) {
   try {
-    const body   = await request.json();
-    const parsed = registerSchema.safeParse(body);
-    if (!parsed.success) {
-      return jsonResponse({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, 400);
+    const { email } = await request.json() as { email?: string };
+    if (!email || typeof email !== "string") {
+      return jsonResponse({ error: "Email is required" }, 400);
     }
-
-    const { email, firstName, lastName, phone, password, role } = parsed.data;
 
     await connectDB();
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existing) {
-      return jsonResponse({ error: "Email already registered" }, 409);
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return jsonResponse({ error: "User not found" }, 404);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      phone,
-      role,
-      isVerified: true,
-    });
+    user.lastLogin = new Date();
+    await user.save();
 
     const accessToken  = await signAccessToken({ userId: user._id.toString(), email: user.email, role: user.role });
     const refreshToken = await signRefreshToken({ userId: user._id.toString() });
@@ -69,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     return jsonResponse({ success: true, accessToken, user: toPublic(user) });
   } catch (e) {
-    console.error("[register]", e);
-    return jsonResponse({ error: "Registration failed. Please try again." }, 500);
+    console.error("[login-direct]", e);
+    return jsonResponse({ error: "Login failed" }, 500);
   }
 }

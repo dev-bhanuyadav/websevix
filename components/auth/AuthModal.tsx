@@ -6,13 +6,12 @@ import Link from "next/link";
 import { useAuthFlow, type RegisterData } from "@/hooks/useAuthFlow";
 import { useBlast, type BlastPhase } from "@/hooks/useBlast";
 import { useAuth } from "@/hooks/useAuth";
-import { useOTPTimer } from "@/hooks/useOTPTimer";
 import { BlastCanvas, type BlastCanvasHandle } from "./BlastCanvas";
-import { EmailStep }       from "./EmailStep";
-import { LoginOTPStep }    from "./LoginOTPStep";
-import { SignupFormStep }  from "./SignupFormStep";
-import { SignupOTPStep }   from "./SignupOTPStep";
-import { SuccessStep }     from "./SuccessStep";
+import { EmailStep }           from "./EmailStep";
+import { LoginPasswordStep }   from "./LoginPasswordStep";
+import { SignupFormStep }       from "./SignupFormStep";
+import { SuccessStep }          from "./SuccessStep";
+import { VerifyAnimation, type ButtonOrigin } from "./VerifyAnimation";
 import { stepForwardVariants, stepBackwardVariants, modalVariants } from "@/lib/animations";
 
 const API = "/api/auth";
@@ -29,20 +28,26 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
   const { login } = useAuth();
   const { phase, origin, trigger, reset: resetBlast } = useBlast();
   const {
-    state, setEmail, setUserExists, setUserNew, setOtpSent,
-    setUserData, setOtpVerified, setError, setLoading, reset,
+    state, setEmail, setUserExists, setUserNew,
+    setAuthSuccess, setError, setLoading, reset,
   } = useAuthFlow(defaultMode);
-  const { secondsLeft, start: startTimer, canResend } = useOTPTimer();
 
   const canvasRef         = useRef<BlastCanvasHandle>(null);
   const modalRef          = useRef<HTMLDivElement>(null);
   const microParticleRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingAuthRef    = useRef<{ accessToken: string; user: unknown } | null>(null);
 
   const [vignetteVisible, setVignetteVisible]   = useState(false);
   const [chromatic, setChromatic]               = useState(false);
   const [warp, setWarp]                         = useState(false);
   const [direction, setDirection]               = useState<"forward" | "backward">("forward");
   const [borderGlowColor, setBorderGlowColor]   = useState<string | null>(null);
+  const [verifyAnim, setVerifyAnim]             = useState<{
+    active: boolean;
+    apiResult: "success" | "error" | null;
+    origin: ButtonOrigin | null;
+    errorMsg: string | null;
+  }>({ active: false, apiResult: null, origin: null, errorMsg: null });
 
   // ── Fire blast on mount ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -106,32 +111,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
     return () => clearTimeout(t);
   }, [state.error]);
 
-  // ── OTP / API handlers ───────────────────────────────────────────────────────
-  const sendOtp = useCallback(
-    async (email: string, type: "login" | "signup") => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res  = await fetch(`${API}/send-otp`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, type }),
-        });
-        const data = await res.json() as { error?: string; retryAfter?: number; expiresIn?: number };
-        if (!res.ok) {
-          setError(data.retryAfter
-            ? `Please wait ${data.retryAfter}s before resending`
-            : (data.error ?? "Failed to send code"));
-          return;
-        }
-        setOtpSent(Date.now());
-        startTimer(data.expiresIn ?? 600);
-      } catch { setError("Network error"); }
-      finally   { setLoading(false); }
-    },
-    [setOtpSent, setLoading, setError, startTimer]
-  );
-
+  // ── Auth handlers ─────────────────────────────────────────────────────────────
   const handleEmailSubmit = useCallback(
     async (email: string) => {
       setLoading(true);
@@ -147,70 +127,84 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
         if (!res.ok) { setError(data.error ?? "Something went wrong"); return; }
         setEmail(email);
         if (data.exists) {
-          setUserExists(data.firstName);
-          await sendOtp(email, "login");
+          setUserExists(data.firstName);       // → LOGIN_PASSWORD step
         } else {
-          setUserNew();
+          setUserNew();                         // → SIGNUP_DETAILS step
         }
       } catch { setError("Network error. Please try again."); }
       finally   { setLoading(false); }
     },
-    [setEmail, setLoading, setError, setUserExists, setUserNew, sendOtp]
+    [setEmail, setLoading, setError, setUserExists, setUserNew]
   );
 
-  const handleLoginOtpSubmit = useCallback(
-    async (otp: string) => {
+  const handleLoginPasswordSubmit = useCallback(
+    async (password: string, origin: ButtonOrigin) => {
       setLoading(true);
       setError(null);
+      pendingAuthRef.current = null;
+      setVerifyAnim({ active: true, apiResult: null, origin, errorMsg: null });
       try {
-        const res  = await fetch(`${API}/verify-otp`, {
+        const res  = await fetch(`${API}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ email: state.email, otp, type: "login" }),
+          body: JSON.stringify({ email: state.email, password }),
         });
         const data = await res.json() as { error?: string; accessToken?: string; user?: unknown };
-        if (!res.ok) { setError(data.error ?? "Invalid code"); return; }
-        login({ accessToken: data.accessToken!, user: data.user as Parameters<typeof login>[0]["user"] });
-        setOtpVerified();
-        setTimeout(() => onSuccess?.(), 2600);
-      } catch { setError("Network error"); }
-      finally   { setLoading(false); }
+        if (!res.ok) {
+          setVerifyAnim(s => ({ ...s, apiResult: "error", errorMsg: data.error ?? "Invalid email or password" }));
+          return;
+        }
+        pendingAuthRef.current = { accessToken: data.accessToken!, user: data.user };
+        setVerifyAnim(s => ({ ...s, apiResult: "success" }));
+      } catch {
+        setVerifyAnim(s => ({ ...s, apiResult: "error", errorMsg: "Network error. Please try again." }));
+      } finally { setLoading(false); }
     },
-    [state.email, login, setOtpVerified, setLoading, setError, onSuccess]
+    [state.email, setLoading, setError]
   );
 
   const handleSignupFormSubmit = useCallback(
-    async (data: RegisterData) => {
+    async (data: RegisterData, origin: ButtonOrigin) => {
       setDirection("forward");
-      setUserData(data);
-      await sendOtp(state.email, "signup");
-    },
-    [state.email, setUserData, sendOtp, setDirection]
-  );
-
-  const handleSignupOtpSubmit = useCallback(
-    async (otp: string) => {
       setLoading(true);
       setError(null);
-      const ud = state.userData as RegisterData;
+      pendingAuthRef.current = null;
+      setVerifyAnim({ active: true, apiResult: null, origin, errorMsg: null });
       try {
         const res  = await fetch(`${API}/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ email: state.email, firstName: ud.firstName, lastName: ud.lastName, phone: ud.phone, role: ud.role, otp }),
+          body: JSON.stringify({ email: state.email, firstName: data.firstName, lastName: data.lastName, phone: data.phone, password: data.password, role: "client" }),
         });
-        const data = await res.json() as { error?: string; accessToken?: string; user?: unknown };
-        if (!res.ok) { setError(data.error ?? "Registration failed"); return; }
-        login({ accessToken: data.accessToken!, user: data.user as Parameters<typeof login>[0]["user"] });
-        setOtpVerified();
-        setTimeout(() => onSuccess?.(), 2600);
-      } catch { setError("Network error"); }
-      finally   { setLoading(false); }
+        const resData = await res.json() as { error?: string; accessToken?: string; user?: unknown };
+        if (!res.ok) {
+          setVerifyAnim(s => ({ ...s, apiResult: "error", errorMsg: resData.error ?? "Registration failed" }));
+          return;
+        }
+        pendingAuthRef.current = { accessToken: resData.accessToken!, user: resData.user };
+        setVerifyAnim(s => ({ ...s, apiResult: "success" }));
+      } catch {
+        setVerifyAnim(s => ({ ...s, apiResult: "error", errorMsg: "Network error. Please try again." }));
+      } finally { setLoading(false); }
     },
-    [state.email, state.userData, login, setOtpVerified, setLoading, setError, onSuccess]
+    [state.email, setLoading, setError]
   );
+
+  const handleVerifyComplete = useCallback(() => {
+    if (pendingAuthRef.current) {
+      login({ accessToken: pendingAuthRef.current.accessToken as string, user: pendingAuthRef.current.user as Parameters<typeof login>[0]["user"] });
+    }
+    setVerifyAnim({ active: false, apiResult: null, origin: null, errorMsg: null });
+    onSuccess?.();
+  }, [login, onSuccess]);
+
+  const handleVerifyErrorDismiss = useCallback(() => {
+    setVerifyAnim({ active: false, apiResult: null, origin: null, errorMsg: null });
+    setLoading(false);
+    setError(null);
+  }, [setLoading, setError]);
 
   const stepVariants = direction === "forward" ? stepForwardVariants : stepBackwardVariants;
   const showContent  = (phase === "content" || phase === "ambient") && !prefersReduced;
@@ -219,6 +213,16 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#050510]">
+
+      {/* ── Cinematic verify animation ── */}
+      <VerifyAnimation
+        isActive={verifyAnim.active}
+        apiResult={verifyAnim.apiResult}
+        origin={verifyAnim.origin}
+        errorMessage={verifyAnim.errorMsg}
+        onComplete={handleVerifyComplete}
+        onErrorDismiss={handleVerifyErrorDismiss}
+      />
 
       {/* ── Canvas overlay (particles, rings) ── */}
       <BlastCanvas
@@ -401,23 +405,21 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                       </motion.div>
                     )}
 
-                    {state.step === "LOGIN_OTP" && (
+                    {state.step === "LOGIN_PASSWORD" && (
                       <motion.div
-                        key="login-otp"
+                        key="login-password"
                         variants={stepVariants}
                         initial="enter"
                         animate="center"
                         exit="exit"
                       >
-                        <LoginOTPStep
+                        <LoginPasswordStep
                           email={state.email}
-                          onSubmit={handleLoginOtpSubmit}
-                          onResend={() => sendOtp(state.email, "login")}
+                          firstName={state.firstName}
+                          onSubmit={handleLoginPasswordSubmit}
+                          onBack={() => { setDirection("backward"); reset(); }}
                           isLoading={state.isLoading}
                           error={state.error}
-                          resendCooldown={secondsLeft}
-                          canResend={canResend}
-                          canvasRef={canvasRef}
                         />
                       </motion.div>
                     )}
@@ -440,31 +442,10 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                       </motion.div>
                     )}
 
-                    {state.step === "SIGNUP_OTP" && (
-                      <motion.div
-                        key="signup-otp"
-                        variants={stepVariants}
-                        initial="enter"
-                        animate="center"
-                        exit="exit"
-                      >
-                        <SignupOTPStep
-                          email={state.email}
-                          onSubmit={handleSignupOtpSubmit}
-                          onResend={() => sendOtp(state.email, "signup")}
-                          isLoading={state.isLoading}
-                          error={state.error}
-                          resendCooldown={secondsLeft}
-                          canResend={canResend}
-                          canvasRef={canvasRef}
-                        />
-                      </motion.div>
-                    )}
-
                     {state.step === "SUCCESS" && (
                       <motion.div key="success" variants={stepVariants} initial="enter" animate="center" exit="exit">
                         <SuccessStep
-                          firstName={state.userData.firstName ?? state.firstName}
+                          firstName={(state.userData.firstName ?? state.firstName) || ""}
                           canvasRef={canvasRef}
                         />
                       </motion.div>
@@ -473,7 +454,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                 </div>
 
                 {/* Footer */}
-                {(state.step === "EMAIL" || state.step === "SIGNUP_DETAILS") && (
+                {(state.step === "EMAIL" || state.step === "LOGIN_PASSWORD" || state.step === "SIGNUP_DETAILS") && (
                   <motion.div
                     className="px-7 pb-5 text-center text-xs text-slate"
                     initial={{ opacity: 0 }}

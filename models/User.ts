@@ -3,6 +3,7 @@ import mongoose, { Schema, model, models } from "mongoose";
 export interface IUser {
   _id: mongoose.Types.ObjectId;
   email: string;
+  password?: string | null;
   firstName: string;
   lastName: string;
   phone: string;
@@ -19,7 +20,8 @@ export interface IUser {
 
 const UserSchema = new Schema<IUser>(
   {
-    email: { type: String, required: true, unique: true, lowercase: true },
+    email:    { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, default: null },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     phone: { type: String, required: true },

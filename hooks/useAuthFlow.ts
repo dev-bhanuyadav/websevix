@@ -4,9 +4,8 @@ import { useReducer, useCallback } from "react";
 
 export type AuthStep =
   | "EMAIL"
-  | "LOGIN_OTP"
+  | "LOGIN_PASSWORD"
   | "SIGNUP_DETAILS"
-  | "SIGNUP_OTP"
   | "SUCCESS";
 
 export interface RegisterData {
@@ -14,6 +13,7 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   phone: string;
+  password: string;
   role: "client" | "developer";
 }
 
@@ -22,7 +22,6 @@ export interface AuthState {
   mode: "login" | "signup";
   email: string;
   firstName: string;
-  otpSentAt: number | null;
   isLoading: boolean;
   error: string | null;
   userData: Partial<RegisterData>;
@@ -32,9 +31,8 @@ type AuthAction =
   | { type: "SET_EMAIL"; email: string }
   | { type: "USER_EXISTS"; firstName?: string }
   | { type: "USER_NEW" }
-  | { type: "OTP_SENT"; timestamp: number }
   | { type: "SET_USER_DATA"; data: Partial<RegisterData> }
-  | { type: "OTP_VERIFIED" }
+  | { type: "AUTH_SUCCESS" }
   | { type: "SET_ERROR"; message: string | null }
   | { type: "LOADING"; value: boolean }
   | { type: "RESET" };
@@ -44,7 +42,6 @@ const initialState: AuthState = {
   mode: "login",
   email: "",
   firstName: "",
-  otpSentAt: null,
   isLoading: false,
   error: null,
   userData: {},
@@ -55,19 +52,12 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
     case "SET_EMAIL":
       return { ...state, email: action.email, error: null };
     case "USER_EXISTS":
-      return { ...state, step: "LOGIN_OTP", mode: "login", firstName: action.firstName ?? "", error: null };
+      return { ...state, step: "LOGIN_PASSWORD", mode: "login", firstName: action.firstName ?? "", error: null };
     case "USER_NEW":
       return { ...state, step: "SIGNUP_DETAILS", mode: "signup", error: null };
-    case "OTP_SENT":
-      return {
-        ...state,
-        otpSentAt: action.timestamp,
-        step: state.mode === "signup" ? "SIGNUP_OTP" : state.step,
-        error: null,
-      };
     case "SET_USER_DATA":
       return { ...state, userData: { ...state.userData, ...action.data } };
-    case "OTP_VERIFIED":
+    case "AUTH_SUCCESS":
       return { ...state, step: "SUCCESS", error: null, isLoading: false };
     case "SET_ERROR":
       return { ...state, error: action.message, isLoading: false };
@@ -83,16 +73,17 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 export function useAuthFlow(initialMode: "login" | "signup" = "login") {
   const [state, dispatch] = useReducer(reducer, { ...initialState, mode: initialMode });
 
-  const setEmail      = useCallback((email: string) => dispatch({ type: "SET_EMAIL", email }), []);
-  const setUserExists = useCallback((firstName?: string) => dispatch({ type: "USER_EXISTS", firstName }), []);
-  const setUserNew    = useCallback(() => dispatch({ type: "USER_NEW" }), []);
-  const setOtpSent    = useCallback((timestamp: number) => dispatch({ type: "OTP_SENT", timestamp }), []);
-  const setUserData   = useCallback((data: Partial<RegisterData>) => dispatch({ type: "SET_USER_DATA", data }), []);
-  const setOtpVerified = useCallback(() => dispatch({ type: "OTP_VERIFIED" }), []);
-  // accepts string to set error, or null/empty string to clear it
-  const setError      = useCallback((message: string | null) => dispatch({ type: "SET_ERROR", message }), []);
-  const setLoading    = useCallback((value: boolean) => dispatch({ type: "LOADING", value }), []);
-  const reset         = useCallback(() => dispatch({ type: "RESET" }), []);
+  const setEmail       = useCallback((email: string) => dispatch({ type: "SET_EMAIL", email }), []);
+  const setUserExists  = useCallback((firstName?: string) => dispatch({ type: "USER_EXISTS", firstName }), []);
+  const setUserNew     = useCallback(() => dispatch({ type: "USER_NEW" }), []);
+  const setUserData    = useCallback((data: Partial<RegisterData>) => dispatch({ type: "SET_USER_DATA", data }), []);
+  const setAuthSuccess = useCallback(() => dispatch({ type: "AUTH_SUCCESS" }), []);
+  const setError       = useCallback((message: string | null) => dispatch({ type: "SET_ERROR", message }), []);
+  const setLoading     = useCallback((value: boolean) => dispatch({ type: "LOADING", value }), []);
+  const reset          = useCallback(() => dispatch({ type: "RESET" }), []);
 
-  return { state, setEmail, setUserExists, setUserNew, setOtpSent, setUserData, setOtpVerified, setError, setLoading, reset };
+  // Keep setOtpVerified as alias for backward compat
+  const setOtpVerified = setAuthSuccess;
+
+  return { state, setEmail, setUserExists, setUserNew, setUserData, setAuthSuccess, setOtpVerified, setError, setLoading, reset };
 }

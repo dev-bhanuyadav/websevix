@@ -7,57 +7,35 @@ import { z } from "zod";
 import { motion } from "framer-motion";
 import { GlowInput } from "@/components/ui/GlowInput";
 import { contentContainerVariants, contentItemVariants } from "@/lib/animations";
-import type { RegisterData } from "@/hooks/useAuthFlow";
 import type { ButtonOrigin } from "./VerifyAnimation";
 
 const schema = z.object({
-  firstName:       z.string().min(2, "At least 2 chars").max(50),
-  lastName:        z.string().min(2, "At least 2 chars").max(50),
-  phone:           z.string().regex(/^[+]?[\d\s\-]{10,15}$/, "Valid phone required"),
-  password:        z.string().min(8, "Min 8 characters").max(72),
-  confirmPassword: z.string(),
-}).refine(d => d.password === d.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  password: z.string().min(1, "Password is required"),
 });
 
-type FormData = z.infer<typeof schema>;
-
-interface SignupFormStepProps {
+interface LoginPasswordStepProps {
   email: string;
-  onSubmit: (data: RegisterData, origin: ButtonOrigin) => void;
+  firstName: string;
+  onSubmit: (password: string, origin: ButtonOrigin) => void;
   onBack: () => void;
   isLoading: boolean;
   error: string | null;
 }
 
-export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: SignupFormStepProps) {
-  const [showPass, setShowPass]       = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+export function LoginPasswordStep({ email, firstName, onSubmit, onBack, isLoading, error }: LoginPasswordStepProps) {
+  const [showPass, setShowPass] = useState(false);
   const submitBtnRef = useRef<HTMLButtonElement>(null);
-
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   });
 
-  const handleFormSubmit = (data: FormData) => {
+  const handleFormSubmit = (d: z.infer<typeof schema>) => {
     const rect = submitBtnRef.current?.getBoundingClientRect();
     const origin: ButtonOrigin = rect
       ? { centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2, top: rect.top, width: rect.width, height: rect.height }
       : { centerX: window.innerWidth / 2, centerY: window.innerHeight * 0.65, top: window.innerHeight * 0.65 - 22, width: 280, height: 44 };
-    onSubmit({ ...data, email, role: "client" }, origin);
+    onSubmit(d.password, origin);
   };
-
-  const EyeIcon = ({ visible }: { visible: boolean }) => visible ? (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2"/>
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-    </svg>
-  );
 
   return (
     <motion.div
@@ -76,11 +54,13 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
           }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+            <rect x="3" y="11" width="18" height="11" rx="2" stroke="white" strokeWidth="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </div>
-        <h2 className="font-display font-bold text-xl text-snow">Create your account</h2>
+        <h2 className="font-display font-bold text-xl text-snow">
+          Welcome back{firstName ? `, ${firstName}` : ""}!
+        </h2>
         <p className="text-xs text-slate">{email}</p>
       </motion.div>
 
@@ -89,39 +69,14 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
         className="space-y-3"
         variants={contentItemVariants}
       >
-        {/* Name row */}
-        <div className="grid grid-cols-2 gap-3">
-          <GlowInput
-            label="First name"
-            placeholder="John"
-            autoFocus
-            error={errors.firstName?.message}
-            {...register("firstName")}
-          />
-          <GlowInput
-            label="Last name"
-            placeholder="Doe"
-            error={errors.lastName?.message}
-            {...register("lastName")}
-          />
-        </div>
-
-        {/* Phone */}
-        <GlowInput
-          label="Phone number"
-          type="tel"
-          placeholder="+91 98765 43210"
-          error={errors.phone?.message}
-          {...register("phone")}
-        />
-
-        {/* Password */}
+        {/* Password field with show/hide toggle */}
         <div className="relative">
           <GlowInput
             label="Password"
             type={showPass ? "text" : "password"}
-            placeholder="Min 8 characters"
-            autoComplete="new-password"
+            placeholder="Enter your password"
+            autoFocus
+            autoComplete="current-password"
             error={errors.password?.message}
             {...register("password")}
           />
@@ -131,27 +86,16 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
             className="absolute right-3 top-[34px] text-slate hover:text-silver transition-colors"
             tabIndex={-1}
           >
-            <EyeIcon visible={showPass} />
-          </button>
-        </div>
-
-        {/* Confirm Password */}
-        <div className="relative">
-          <GlowInput
-            label="Confirm password"
-            type={showConfirm ? "text" : "password"}
-            placeholder="Repeat your password"
-            autoComplete="new-password"
-            error={errors.confirmPassword?.message}
-            {...register("confirmPassword")}
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirm(p => !p)}
-            className="absolute right-3 top-[34px] text-slate hover:text-silver transition-colors"
-            tabIndex={-1}
-          >
-            <EyeIcon visible={showConfirm} />
+            {showPass ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M1 1l22 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            )}
           </button>
         </div>
 
@@ -200,9 +144,9 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Creating…
+                  Signing in…
                 </>
-              ) : "Create Account →"}
+              ) : "Sign In →"}
             </span>
           </motion.button>
         </div>
