@@ -11,11 +11,11 @@ import { z } from "zod";
 const REFRESH_MAX_AGE = 30 * 24 * 60 * 60;
 
 const registerSchema = z.object({
-  email:     z.string().email(),
-  firstName: z.string().min(2).max(50),
-  lastName:  z.string().min(2).max(50),
-  phone:     z.string().min(7).max(20),
-  password:  z.string().min(8).max(72),
+  email:     z.string().email("Valid email required"),
+  firstName: z.string().min(1).max(50).trim(),
+  lastName:  z.string().min(1).max(50).trim(),
+  phone:     z.string().min(5).max(25).trim(),
+  password:  z.string().min(8, "Password must be at least 8 characters").max(72),
   role:      z.enum(["client", "developer"]).default("client"),
 });
 
@@ -24,27 +24,31 @@ export async function POST(request: NextRequest) {
     const body   = await request.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonResponse({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, 400);
+      const fields = parsed.error.flatten().fieldErrors;
+      const first  = Object.values(fields)[0]?.[0] ?? "Invalid input";
+      return jsonResponse({ error: first, details: fields }, 400);
     }
 
     const { email, firstName, lastName, phone, password, role } = parsed.data;
 
     await connectDB();
+
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) {
-      return jsonResponse({ error: "Email already registered" }, 409);
+      return jsonResponse({ error: "This email is already registered. Please sign in instead." }, 409);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      email,
+      email:    email.toLowerCase().trim(),
       password: hashedPassword,
       firstName,
       lastName,
       phone,
       role,
       isVerified: true,
+      profileComplete: true,
     });
 
     const accessToken  = await signAccessToken({ userId: user._id.toString(), email: user.email, role: user.role });
@@ -61,15 +65,19 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies();
     cookieStore.set("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:   process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: REFRESH_MAX_AGE,
-      path: "/",
+      maxAge:   REFRESH_MAX_AGE,
+      path:     "/",
     });
 
     return jsonResponse({ success: true, accessToken, user: toPublic(user) });
+
   } catch (e) {
-    console.error("[register]", e);
-    return jsonResponse({ error: "Registration failed. Please try again." }, 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[register] ERROR:", msg);
+    // Show real error in dev; generic in prod
+    const detail = process.env.NODE_ENV !== "production" ? msg : "Registration failed. Please try again.";
+    return jsonResponse({ error: detail }, 500);
   }
 }

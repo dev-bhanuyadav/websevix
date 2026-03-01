@@ -32,8 +32,6 @@ const UserSchema = new Schema<IUser>(
     googleId: { type: String, default: null },
     profileComplete: { type: Boolean, default: false },
     lastLogin: { type: Date, default: null },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
