@@ -3,7 +3,12 @@
 import { forwardRef } from "react";
 import { motion } from "framer-motion";
 
-interface GlowInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+type InputProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "onDrag" | "onDragEnd" | "onDragEnter" | "onDragExit" | "onDragLeave" | "onDragOver" | "onDragStart" | "onAnimationStart"
+>;
+
+interface GlowInputProps extends InputProps {
   label: string;
   error?: string;
 }

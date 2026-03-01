@@ -1,39 +1,40 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
+import { FileText, MessageSquare, Wallet, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+
+const EXPO = [0.16, 1, 0.3, 1] as const;
 
 function SignOutButton() {
   const { logout } = useAuth();
   const router = useRouter();
   return (
-    <button type="button" onClick={async () => { await logout(); router.push("/"); }} className="text-sm text-slate hover:text-snow">
+    <button
+      type="button"
+      onClick={async () => { await logout(); router.push("/"); }}
+      className="text-sm text-slate hover:text-snow transition-colors"
+    >
       Sign out
     </button>
   );
 }
-import { motion } from "framer-motion";
-import { FileText, MessageSquare, Wallet, Briefcase } from "lucide-react";
-
-const EXPO = [0.16, 1, 0.3, 1] as const;
 
 export default function DeveloperDashboardPage() {
   const { user } = useAuth();
-
   const stats = [
-    { label: "Active proposals", value: "0", icon: FileText },
-    { label: "Completed projects", value: "0", icon: MessageSquare },
-    { label: "Earnings", value: "—", icon: Wallet },
+    { label: "Active proposals",    value: "0", icon: FileText     },
+    { label: "Completed projects",  value: "0", icon: MessageSquare },
+    { label: "Earnings",            value: "—", icon: Wallet        },
   ];
 
   return (
     <div className="min-h-screen bg-base">
       <header className="border-b border-white/5 py-4 px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="font-display font-bold text-lg text-snow">
-            Websevix
-          </Link>
+          <Link href="/" className="font-display font-bold text-lg text-snow">Websevix</Link>
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate">{user?.email}</span>
             <SignOutButton />
@@ -91,8 +92,7 @@ export default function DeveloperDashboardPage() {
               href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold hover:opacity-95 transition-opacity"
             >
-              <Briefcase className="w-4 h-4" />
-              Browse projects
+              <Briefcase className="w-4 h-4" /> Browse projects
             </Link>
           </div>
         </motion.section>

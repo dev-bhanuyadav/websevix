@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { GlowInput } from "@/components/ui/GlowInput";
+import type { RegisterData } from "@/hooks/useAuthFlow";
 
 const schema = z.object({
   firstName: z.string().min(2, "At least 2 characters").max(50),
@@ -13,25 +14,26 @@ const schema = z.object({
   role: z.enum(["client", "developer"]),
 });
 
-type FormData = z.infer<typeof schema>;
-
 interface SignupFormStepProps {
   email: string;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: RegisterData) => void;
   onBack: () => void;
   isLoading: boolean;
   error: string | null;
 }
 
 export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: SignupFormStepProps) {
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { role: "client" },
   });
 
+  const handleFormSubmit = (data: z.infer<typeof schema>) =>
+    onSubmit({ ...data, email });
+
   return (
     <motion.form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(handleFormSubmit)}
       className="space-y-4"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}

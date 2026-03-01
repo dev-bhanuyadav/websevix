@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useAuthFlow, type AuthStep, type RegisterData } from "@/hooks/useAuthFlow";
+import { useAuthFlow, type RegisterData } from "@/hooks/useAuthFlow";
 import { useAuth } from "@/hooks/useAuth";
 import { useOTPTimer } from "@/hooks/useOTPTimer";
 import { EmailStep } from "./EmailStep";
@@ -21,42 +21,22 @@ interface AuthModalProps {
 
 export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) {
   const { login } = useAuth();
-  const { state, setEmail, setUserExists, setUserNew, setOtpSent, setUserData, setOtpVerified, setError, setLoading, reset } = useAuthFlow(defaultMode);
-  const { secondsLeft, start: startTimer, canResend } = useOTPTimer(null);
+  const {
+    state,
+    setEmail,
+    setUserExists,
+    setUserNew,
+    setOtpSent,
+    setUserData,
+    setOtpVerified,
+    setError,
+    setLoading,
+    reset,
+  } = useAuthFlow(defaultMode);
 
-  const handleEmailSubmit = useCallback(
-    async (email: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const checkRes = await fetch(`${API}/check-email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        const checkData = await checkRes.json();
-        if (!checkRes.ok) {
-          setError(checkData.error || "Something went wrong");
-          return;
-        }
-        setEmail(email);
-        if (checkData.exists) {
-          setUserExists(checkData.firstName);
-          await sendOtp(email, "login");
-          setOtpSent(Date.now());
-          startTimer(600);
-        } else {
-          setUserNew();
-        }
-      } catch {
-        setError("Network error. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setEmail, setLoading, setError, setUserExists, setUserNew, setOtpSent, sendOtp, startTimer]
-  );
+  const { secondsLeft, start: startTimer, canResend } = useOTPTimer();
 
+  // ── sendOtp must be defined BEFORE handleEmailSubmit ──
   const sendOtp = useCallback(
     async (email: string, type: "login" | "signup") => {
       setLoading(true);
@@ -67,10 +47,12 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, type }),
         });
-        const data = await res.json();
+        const data = await res.json() as { error?: string; retryAfter?: number; expiresIn?: number };
         if (!res.ok) {
-          setError(data.error || "Failed to send code");
-          if (data.retryAfter) setError(`Please wait ${data.retryAfter}s before resending`);
+          const msg = data.retryAfter
+            ? `Please wait ${data.retryAfter}s before resending`
+            : (data.error ?? "Failed to send code");
+          setError(msg);
           return;
         }
         setOtpSent(Date.now());
@@ -84,6 +66,37 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
     [setOtpSent, setLoading, setError, startTimer]
   );
 
+  const handleEmailSubmit = useCallback(
+    async (email: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const checkRes = await fetch(`${API}/check-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const checkData = await checkRes.json() as { exists: boolean; firstName?: string; error?: string };
+        if (!checkRes.ok) {
+          setError(checkData.error ?? "Something went wrong");
+          return;
+        }
+        setEmail(email);
+        if (checkData.exists) {
+          setUserExists(checkData.firstName);
+          await sendOtp(email, "login");
+        } else {
+          setUserNew();
+        }
+      } catch {
+        setError("Network error. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setEmail, setLoading, setError, setUserExists, setUserNew, sendOtp]
+  );
+
   const handleLoginOtpSubmit = useCallback(
     async (otp: string) => {
       setLoading(true);
@@ -95,12 +108,12 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
           credentials: "include",
           body: JSON.stringify({ email: state.email, otp, type: "login" }),
         });
-        const data = await res.json();
+        const data = await res.json() as { error?: string; accessToken?: string; user?: unknown };
         if (!res.ok) {
-          setError(data.error || "Invalid code");
+          setError(data.error ?? "Invalid code");
           return;
         }
-        login({ accessToken: data.accessToken, user: data.user });
+        login({ accessToken: data.accessToken!, user: data.user as Parameters<typeof login>[0]["user"] });
         setOtpVerified();
         setTimeout(() => onSuccess?.(), 1500);
       } catch {
@@ -114,16 +127,10 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
 
   const handleSignupFormSubmit = useCallback(
     async (data: RegisterData) => {
-      setLoading(true);
-      setError(null);
       setUserData(data);
-      try {
-        await sendOtp(state.email, "signup");
-      } finally {
-        setLoading(false);
-      }
+      await sendOtp(state.email, "signup");
     },
-    [state.email, setUserData, setLoading, setError, sendOtp]
+    [state.email, setUserData, sendOtp]
   );
 
   const handleSignupOtpSubmit = useCallback(
@@ -145,12 +152,12 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
             otp,
           }),
         });
-        const data = await res.json();
+        const data = await res.json() as { error?: string; accessToken?: string; user?: unknown };
         if (!res.ok) {
-          setError(data.error || "Registration failed");
+          setError(data.error ?? "Registration failed");
           return;
         }
-        login({ accessToken: data.accessToken, user: data.user });
+        login({ accessToken: data.accessToken!, user: data.user as Parameters<typeof login>[0]["user"] });
         setOtpVerified();
         setTimeout(() => onSuccess?.(), 1500);
       } catch {
@@ -176,7 +183,7 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
           <Link href="/" className="font-display font-bold text-xl text-snow">
             Websevix
           </Link>
-          <Link href="/" className="text-sm text-slate hover:text-silver">
+          <Link href="/" className="text-sm text-slate hover:text-silver transition-colors">
             ← Back
           </Link>
         </div>
@@ -225,16 +232,30 @@ export function AuthModal({ defaultMode = "login", onSuccess }: AuthModalProps) 
             />
           )}
           {step === "SUCCESS" && (
-            <SuccessStep key="success" firstName={state.userData.firstName ?? state.firstName} />
+            <SuccessStep
+              key="success"
+              firstName={state.userData.firstName ?? state.firstName}
+            />
           )}
         </AnimatePresence>
 
-        {step === "SIGNUP_DETAILS" && (
+        {(step === "SIGNUP_DETAILS" || step === "EMAIL") && (
           <p className="mt-6 text-center text-xs text-slate">
-            Already have an account?{" "}
-            <button type="button" onClick={reset} className="text-indigo-400 hover:underline">
-              Sign in
-            </button>
+            {step === "SIGNUP_DETAILS" ? (
+              <>
+                Already have an account?{" "}
+                <button type="button" onClick={reset} className="text-indigo-400 hover:underline">
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                New here?{" "}
+                <Link href="/signup" className="text-indigo-400 hover:underline">
+                  Create account
+                </Link>
+              </>
+            )}
           </p>
         )}
       </motion.div>

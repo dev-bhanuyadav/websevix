@@ -1,8 +1,12 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
+import { FileText, MessageSquare, Wallet, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+
+const EXPO = [0.16, 1, 0.3, 1] as const;
 
 function SignOutButton() {
   const { logout } = useAuth();
@@ -11,23 +15,19 @@ function SignOutButton() {
     <button
       type="button"
       onClick={async () => { await logout(); router.push("/"); }}
-      className="text-sm text-slate hover:text-snow"
+      className="text-sm text-slate hover:text-snow transition-colors"
     >
       Sign out
     </button>
   );
 }
-import { motion } from "framer-motion";
-import { FileText, MessageSquare, Wallet, Plus } from "lucide-react";
-
-const EXPO = [0.16, 1, 0.3, 1] as const;
 
 export default function ClientDashboardPage() {
   const { user } = useAuth();
   const stats = [
-    { label: "Active projects", value: "0", icon: FileText },
+    { label: "Active projects",    value: "0", icon: FileText    },
     { label: "Proposals received", value: "0", icon: MessageSquare },
-    { label: "Total spent", value: "—", icon: Wallet },
+    { label: "Total spent",        value: "—", icon: Wallet       },
   ];
 
   return (
@@ -41,16 +41,34 @@ export default function ClientDashboardPage() {
           </div>
         </div>
       </header>
+
       <main className="max-w-6xl mx-auto px-6 py-10">
-        <motion.h1 className="font-display font-bold text-2xl sm:text-3xl text-snow mb-2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EXPO }}>
+        <motion.h1
+          className="font-display font-bold text-2xl sm:text-3xl text-snow mb-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EXPO }}
+        >
           Welcome back, {user?.firstName ?? "there"}!
         </motion.h1>
-        <motion.p className="text-slate mb-10" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EXPO, delay: 0.1 }}>
+        <motion.p
+          className="text-slate mb-10"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EXPO, delay: 0.1 }}
+        >
           Manage your projects and orders from here.
         </motion.p>
+
         <div className="grid sm:grid-cols-3 gap-4 mb-10">
           {stats.map((s, i) => (
-            <motion.div key={s.label} className="card card-hover p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EXPO, delay: 0.15 + i * 0.08 }}>
+            <motion.div
+              key={s.label}
+              className="card card-hover p-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EXPO, delay: 0.15 + i * 0.08 }}
+            >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
                   <s.icon className="w-5 h-5 text-indigo-400" />
@@ -61,11 +79,19 @@ export default function ClientDashboardPage() {
             </motion.div>
           ))}
         </div>
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
+
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
           <h2 className="font-display font-semibold text-lg text-snow mb-4">Recent projects</h2>
           <div className="card p-8 text-center text-slate">
             <p className="mb-4">You don&apos;t have any projects yet.</p>
-            <Link href="/" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold hover:opacity-95">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold hover:opacity-95 transition-opacity"
+            >
               <Plus className="w-4 h-4" /> Post new project
             </Link>
           </div>
