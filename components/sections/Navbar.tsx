@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -19,6 +20,19 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const rm = useReducedMotion();
+  const router = useRouter();
+
+  const goAuth = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    try {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      sessionStorage.setItem("blast_origin", JSON.stringify({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      }));
+    } catch { /* ignore */ }
+    router.push(href);
+  }, [router]);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 30);
@@ -97,12 +111,17 @@ export default function Navbar() {
           >
             <Link
               href="/login"
+              onClick={(e) => goAuth(e, "/login")}
               className="text-sm font-medium text-slate hover:text-snow px-4 py-2 rounded-lg hover:bg-white/[0.04] transition-all duration-500"
               style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
             >
               Sign In
             </Link>
-            <Link href="/signup" className="btn-primary btn-shimmer text-sm px-5 py-2.5">
+            <Link
+              href="/signup"
+              onClick={(e) => goAuth(e, "/signup")}
+              className="btn-primary btn-shimmer text-sm px-5 py-2.5"
+            >
               Get Started →
             </Link>
           </motion.div>
@@ -174,8 +193,8 @@ export default function Navbar() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: EXPO, delay: 0.35 }}
               >
-                <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost text-center py-4 text-base">Sign In</Link>
-                <Link href="/signup" onClick={() => setOpen(false)} className="btn-primary btn-shimmer text-center py-4 text-base">Get Started →</Link>
+                <Link href="/login" onClick={(e) => { setOpen(false); goAuth(e, "/login"); }} className="btn-ghost text-center py-4 text-base">Sign In</Link>
+                <Link href="/signup" onClick={(e) => { setOpen(false); goAuth(e, "/signup"); }} className="btn-primary btn-shimmer text-center py-4 text-base">Get Started →</Link>
               </motion.div>
             </motion.div>
           </motion.div>

@@ -288,3 +288,85 @@ body {
   animation: revealTopLine 1.4s var(--ease-expo) forwards;
   z-index: 9998;
 }
+
+/* ─────────────────────────────────────────────────────────
+   CINEMATIC AUTH KEYFRAMES
+───────────────────────────────────────────────────────── */
+
+/* Error / OTP wrong shake */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  15%     { transform: translateX(-10px); }
+  30%     { transform: translateX(10px); }
+  45%     { transform: translateX(-8px); }
+  60%     { transform: translateX(8px); }
+  75%     { transform: translateX(-4px); }
+  90%     { transform: translateX(4px); }
+}
+.shake { animation: shake 0.5s var(--ease-expo) forwards; }
+
+/* Infinite shimmer sweep on submit button */
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-150%) skewX(-12deg); }
+  100% { transform: translateX(300%)  skewX(-12deg); }
+}
+.shimmer-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,0.14) 50%, transparent 80%);
+  animation: shimmer-sweep 3s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+/* Scan-line sweep (one pass) */
+@keyframes scanline-sweep {
+  from { top: -4px; opacity: 0.6; }
+  to   { top: 105%; opacity: 0; }
+}
+.scanline::after {
+  content: "";
+  position: absolute;
+  inset-x: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.4), transparent);
+  animation: scanline-sweep 0.45s linear forwards;
+}
+
+/* Rotating gradient border — uses CSS custom property via Framer Motion */
+@property --a {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes spin-border {
+  to { --a: 360deg; }
+}
+.border-spin {
+  background: conic-gradient(from var(--a), transparent 30%, #6366F1 50%, #8B5CF6 65%, #06B6D4 80%, transparent 90%);
+  animation: spin-border 4s linear infinite;
+}
+
+/* Hue cycle for success rainbow */
+@keyframes hue-cycle {
+  from { filter: hue-rotate(0deg); }
+  to   { filter: hue-rotate(360deg); }
+}
+.hue-cycle { animation: hue-cycle 0.4s linear infinite; }
+
+/* Conic gradient portal spin */
+@keyframes spin { to { rotate: 360deg; } }
+
+/* Logo float loop */
+@keyframes logo-float {
+  0%,100% { transform: translateY(0px); }
+  50%     { transform: translateY(-5px); }
+}
+.logo-float { animation: logo-float 3s ease-in-out infinite; }
+
+/* Input idle glow pulse */
+@keyframes idle-glow {
+  0%,100% { box-shadow: 0 0 0 1px rgba(99,102,241,0.1); }
+  50%     { box-shadow: 0 0 0 1px rgba(99,102,241,0.3), 0 0 12px rgba(99,102,241,0.12); }
+}
+.input-idle-glow { animation: idle-glow 4s ease-in-out infinite; }
