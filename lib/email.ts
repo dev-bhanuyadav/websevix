@@ -4,15 +4,16 @@ const host   = process.env.SMTP_HOST;
 const port   = Number(process.env.SMTP_PORT)  || 465;
 const secure = process.env.SMTP_SECURE !== "false"; // default true for port 465
 const user   = process.env.SMTP_USER;
-const pass   = process.env.SMTP_PASS;
-const from   = process.env.SMTP_FROM ?? `"Websevix" <${user}>`;
+// Strip surrounding quotes if present (some .env parsers keep them)
+const pass   = (process.env.SMTP_PASS ?? "").replace(/^["']|["']$/g, "");
+const from   = process.env.SMTP_FROM ?? `Websevix <${user}>`;
 
 if (!host || !user || !pass) {
   console.warn("[email] SMTP_HOST / SMTP_USER / SMTP_PASS missing — OTP emails will not send");
 }
 
 const transporter =
-  host && user && pass
+  host && user && pass?.length > 0
     ? nodemailer.createTransport({
         host,
         port,

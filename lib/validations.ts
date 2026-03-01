@@ -29,7 +29,8 @@ export const registerSchema = z.object({
   firstName: z.string().min(2, "At least 2 characters").max(50).trim(),
   lastName: z.string().min(2, "At least 2 characters").max(50).trim(),
   phone: phoneSchema,
-  role: z.enum(["client", "developer"]),
+  // role is always "client" — developer platform is separate
+  role: z.enum(["client", "developer"]).default("client"),
   otp: z.string().length(6).regex(/^\d+$/),
 });
 

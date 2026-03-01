@@ -7,24 +7,44 @@ interface MongooseCache {
 
 declare global {
   // eslint-disable-next-line no-var
-  var mongoose: MongooseCache | undefined;
+  var _mongooseCache: MongooseCache | undefined;
 }
 
-const cached: MongooseCache = global.mongoose ?? { conn: null, promise: null };
+// Use a fresh cache object in development (avoids stale failed promises across hot-reloads)
+const cached: MongooseCache = global._mongooseCache ?? { conn: null, promise: null };
 
 if (process.env.NODE_ENV !== "production") {
-  global.mongoose = cached;
+  global._mongooseCache = cached;
 }
 
 export async function connectDB(): Promise<typeof mongoose> {
   const uri = process.env.MONGODB_URI;
+
   if (!uri) {
-    throw new Error("Please add MONGODB_URI to .env.local");
+    throw new Error("MONGODB_URI missing in .env.local");
   }
-  if (cached.conn) return cached.conn;
+
+  // Already connected — return cached connection
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  // Kick off new connection (or reuse in-flight promise)
   if (!cached.promise) {
-    cached.promise = mongoose.connect(uri);
+    cached.promise = mongoose
+      .connect(uri, {
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 30000,
+      })
+      .catch((err) => {
+        // CRITICAL: clear failed promise so the NEXT request retries instead
+        // of returning the same rejected promise forever
+        cached.promise = null;
+        throw err;
+      });
   }
+
   cached.conn = await cached.promise;
   return cached.conn;
 }

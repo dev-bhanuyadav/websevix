@@ -28,11 +28,18 @@ export async function POST(request: NextRequest) {
     }
     return jsonResponse({ exists: false });
   } catch (e) {
-    console.error("[check-email]", e);
-    const msg = e instanceof Error ? e.message : "Server error";
-    const isConfig = msg.includes("MONGODB_URI") || msg.includes("connect");
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[check-email] ERROR:", msg);
+    const isConfig = msg.includes("MONGODB_URI missing");
+    const isNetwork = msg.includes("ECONNREFUSED") || msg.includes("ETIMEDOUT") || msg.includes("ENOTFOUND") || msg.includes("serverSelection");
     return jsonResponse(
-      { error: isConfig ? "Database not configured. Please check server setup." : "Server error" },
+      {
+        error: isConfig
+          ? "Database not configured. Add MONGODB_URI to .env.local"
+          : isNetwork
+          ? "Cannot reach database. Check MongoDB Atlas Network Access (0.0.0.0/0)."
+          : `Server error: ${msg}`,
+      },
       500
     );
   }

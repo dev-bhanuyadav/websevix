@@ -12,7 +12,6 @@ const schema = z.object({
   firstName: z.string().min(2, "At least 2 chars").max(50),
   lastName:  z.string().min(2, "At least 2 chars").max(50),
   phone:     z.string().regex(/^[+]?[\d\s\-]{10,15}$/, "Valid phone required"),
-  role:      z.enum(["client", "developer"]),
 });
 
 interface SignupFormStepProps {
@@ -24,15 +23,12 @@ interface SignupFormStepProps {
 }
 
 export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: SignupFormStepProps) {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<z.infer<typeof schema>>({
+  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { role: "client" },
   });
 
-  const role = watch("role");
-
   const handleFormSubmit = (data: z.infer<typeof schema>) => {
-    onSubmit({ ...data, email });
+    onSubmit({ ...data, email, role: "client" });
   };
 
   return (
@@ -44,11 +40,16 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
     >
       {/* Header */}
       <motion.div variants={contentItemVariants} className="text-center space-y-1">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-2"
-          style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", boxShadow: "0 0 24px rgba(99,102,241,0.4)" }}>
+        <div
+          className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-2"
+          style={{
+            background: "linear-gradient(135deg,#6366F1,#8B5CF6)",
+            boxShadow: "0 0 24px rgba(99,102,241,0.4)",
+          }}
+        >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2" />
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
           </svg>
         </div>
         <h2 className="font-display font-bold text-xl text-snow">Create your account</h2>
@@ -64,6 +65,7 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
           <GlowInput
             label="First name"
             placeholder="John"
+            autoFocus
             error={errors.firstName?.message}
             {...register("firstName")}
           />
@@ -76,46 +78,12 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
         </div>
 
         <GlowInput
-          label="Phone"
+          label="Phone number"
           type="tel"
           placeholder="+91 98765 43210"
           error={errors.phone?.message}
           {...register("phone")}
         />
-
-        {/* Role toggle */}
-        <motion.div variants={contentItemVariants}>
-          <label className="block text-xs font-medium text-slate mb-2">I am a</label>
-          <div className="grid grid-cols-2 gap-2">
-            {(["client", "developer"] as const).map((r) => (
-              <label
-                key={r}
-                className="relative cursor-pointer"
-              >
-                <input type="radio" value={r} className="sr-only" {...register("role")} />
-                <motion.div
-                  animate={
-                    role === r
-                      ? {
-                          borderColor: "rgba(99,102,241,0.6)",
-                          background: "rgba(99,102,241,0.12)",
-                          boxShadow: "0 0 0 2px rgba(99,102,241,0.2)",
-                        }
-                      : {
-                          borderColor: "rgba(255,255,255,0.07)",
-                          background: "rgba(255,255,255,0.03)",
-                          boxShadow: "none",
-                        }
-                  }
-                  transition={{ duration: 0.2 }}
-                  className="py-3 rounded-xl border text-center text-sm font-medium capitalize text-silver"
-                >
-                  {r === "client" ? "🏢 Client" : "💻 Developer"}
-                </motion.div>
-              </label>
-            ))}
-          </div>
-        </motion.div>
 
         {error && (
           <motion.p
@@ -137,11 +105,15 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
           >
             ← Back
           </motion.button>
+
           <motion.button
             type="submit"
             disabled={isLoading}
             className="relative flex-1 py-3 rounded-xl font-semibold text-white text-sm overflow-hidden disabled:opacity-60"
-            style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", boxShadow: "0 4px 18px rgba(99,102,241,0.28)" }}
+            style={{
+              background: "linear-gradient(135deg,#6366F1,#8B5CF6)",
+              boxShadow: "0 4px 18px rgba(99,102,241,0.28)",
+            }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
           >
@@ -150,8 +122,16 @@ export function SignupFormStep({ email, onSubmit, onBack, isLoading, error }: Si
               animate={{ x: ["-150%", "300%"] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.5 }}
             />
-            <span className="relative z-10">
-              {isLoading ? "Sending…" : "Send Code →"}
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {isLoading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Sending…
+                </>
+              ) : "Send Code →"}
             </span>
           </motion.button>
         </div>
