@@ -2,7 +2,6 @@ export const navLinks = [
   { label: "Home", href: "#home" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Services", href: "#services" },
-  { label: "Testimonials", href: "#testimonials" },
 ] as const;
 
 export const heroContent = {

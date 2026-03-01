@@ -35,12 +35,16 @@ export const metadata: Metadata = {
   },
 };
 
+import { AuthProvider } from "@/context/AuthContext";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans bg-base text-snow antialiased">
-        <div className="noise-overlay" aria-hidden />
-        {children}
+        <AuthProvider>
+          <div className="noise-overlay" aria-hidden />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

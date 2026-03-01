@@ -96,13 +96,13 @@ export default function Navbar() {
             transition={{ duration: 0.9, ease: EXPO, delay: 0.4 }}
           >
             <Link
-              href="#login"
+              href="/login"
               className="text-sm font-medium text-slate hover:text-snow px-4 py-2 rounded-lg hover:bg-white/[0.04] transition-all duration-500"
               style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
             >
               Sign In
             </Link>
-            <Link href="#signup" className="btn-primary btn-shimmer text-sm px-5 py-2.5">
+            <Link href="/signup" className="btn-primary btn-shimmer text-sm px-5 py-2.5">
               Get Started →
             </Link>
           </motion.div>
@@ -174,8 +174,8 @@ export default function Navbar() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: EXPO, delay: 0.35 }}
               >
-                <Link href="#login" onClick={() => setOpen(false)} className="btn-ghost text-center py-4 text-base">Sign In</Link>
-                <Link href="#signup" onClick={() => setOpen(false)} className="btn-primary btn-shimmer text-center py-4 text-base">Get Started →</Link>
+                <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost text-center py-4 text-base">Sign In</Link>
+                <Link href="/signup" onClick={() => setOpen(false)} className="btn-primary btn-shimmer text-center py-4 text-base">Get Started →</Link>
               </motion.div>
             </motion.div>
           </motion.div>
