@@ -317,7 +317,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
         {/* ── Modal card ── */}
         <AnimatePresence>
           {modalVisible && (
-            <motion.div
+              <motion.div
               ref={modalRef}
               variants={prefersReduced
                 ? { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } }
@@ -325,7 +325,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="relative z-[48] w-full max-w-md mx-4"
+              className="relative z-[48] w-full max-w-sm mx-4"
               style={{ willChange: "transform, filter" }}
             >
               {/* Rotating gradient border */}
@@ -371,7 +371,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                 }}
               >
                 {/* Top bar */}
-                <div className="flex items-center justify-between px-7 pt-6 pb-0">
+                <div className="flex items-center justify-between px-5 pt-4 pb-0">
                   <motion.div
                     animate={phase === "ambient" ? { y: [0, -4, 0] } : {}}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -386,7 +386,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                 </div>
 
                 {/* Step content */}
-                <div className="px-7 py-6">
+                <div className="px-5 py-4">
                   <AnimatePresence mode="wait">
                     {state.step === "EMAIL" && (
                       <motion.div
@@ -456,7 +456,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                 {/* Footer */}
                 {(state.step === "EMAIL" || state.step === "LOGIN_PASSWORD" || state.step === "SIGNUP_DETAILS") && (
                   <motion.div
-                    className="px-7 pb-5 text-center text-xs text-slate"
+                    className="px-5 pb-4 text-center text-xs text-slate"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: phase === "content" || phase === "ambient" ? 1 : 0 }}
                     transition={{ delay: 0.6 }}

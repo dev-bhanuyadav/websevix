@@ -32,7 +32,7 @@ export function SuccessStep({ firstName, canvasRef }: SuccessStepProps) {
   return (
     <motion.div
       ref={containerRef}
-      className="py-8 text-center space-y-6"
+      className="py-5 text-center space-y-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -45,10 +45,10 @@ export function SuccessStep({ firstName, canvasRef }: SuccessStepProps) {
         transition={{ type: "spring", stiffness: 280, damping: 16, delay: 0.1 }}
       >
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center relative"
+          className="w-16 h-16 rounded-full flex items-center justify-center relative"
           style={{
             background: "linear-gradient(135deg, #10B981, #059669)",
-            boxShadow: "0 0 40px rgba(16,185,129,0.5), 0 0 80px rgba(16,185,129,0.2)",
+            boxShadow: "0 0 32px rgba(16,185,129,0.5), 0 0 60px rgba(16,185,129,0.2)",
           }}
         >
           {/* Pulse ring */}
@@ -83,7 +83,7 @@ export function SuccessStep({ firstName, canvasRef }: SuccessStepProps) {
             variants={successCharVariants}
             initial="hidden"
             animate="visible"
-            className="font-display font-bold text-3xl text-snow inline-block"
+            className="font-display font-bold text-2xl text-snow inline-block"
             style={{ whiteSpace: char === " " ? "pre" : "normal" }}
           >
             {char}

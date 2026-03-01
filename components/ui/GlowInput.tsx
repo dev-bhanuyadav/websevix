@@ -21,7 +21,7 @@ export const GlowInput = forwardRef<HTMLInputElement, GlowInputProps>(
     return (
       <div className="w-full">
         <motion.label
-          className="block text-xs font-medium mb-2 transition-colors duration-300"
+          className="block text-xs font-medium mb-1 transition-colors duration-300"
           animate={{ color: focused ? "#a5b4fc" : "#94a3b8" }}
         >
           {label}
@@ -46,7 +46,7 @@ export const GlowInput = forwardRef<HTMLInputElement, GlowInputProps>(
           <motion.input
             ref={ref}
             className={`
-              w-full px-4 py-3.5 rounded-xl text-snow placeholder-slate/50
+              w-full px-3.5 py-2.5 rounded-xl text-sm text-snow placeholder-slate/50
               focus:outline-none transition-all duration-300 bg-white/[0.04]
               ${error ? "border-red-500/50" : "border-white/10"}
               ${disabled ? "opacity-50 cursor-not-allowed" : ""}
