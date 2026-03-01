@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
 // VIX — Websevix AI Project Consultant
-// Full knowledge base for context-aware project consultation
+// Deep knowledge base + context-aware response engine
 // ══════════════════════════════════════════════════════════════════
 
 export interface AIResponse {
@@ -20,108 +20,119 @@ export interface AIResponse {
   isComplete?: boolean;
 }
 
-// ── Project-type keyword detection ───────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// PROJECT CATEGORY SYSTEM
+// ─────────────────────────────────────────────────────────────────
 
 export type ProjectCategory =
-  | "educational"
-  | "ecommerce"
-  | "restaurant"
-  | "medical"
-  | "portfolio"
-  | "real_estate"
-  | "saas"
-  | "business"
-  | "blog"
-  | "ngo"
-  | "event"
-  | "travel"
-  | "fitness"
-  | "other";
+  | "educational" | "ecommerce" | "restaurant" | "medical"
+  | "portfolio"   | "real_estate" | "saas"   | "business"
+  | "blog"        | "ngo"        | "event"   | "travel"
+  | "fitness"     | "finance"    | "matrimony" | "other";
 
-const CATEGORY_KEYWORDS: Record<ProjectCategory, string[]> = {
+// Keywords per category (more → higher confidence)
+const KEYWORDS: Record<ProjectCategory, string[]> = {
   educational: [
-    "school","college","university","course","learn","education","study","student","teacher",
-    "tuition","coaching","academy","institute","training","lms","class","lecture","curriculum",
-    "e-learning","elearning","quiz","assignment","exam","test","degree","diploma","tutorial",
-    "educational","skill","knowledge","online course","certification","batch","fees",
+    "school","college","university","institute","academy","coaching","tuition",
+    "course","learn","student","teacher","faculty","class","lecture","exam","quiz",
+    "assignment","education","e-learning","elearning","lms","curriculum","batch",
+    "degree","diploma","certificate","test","study","knowledge","training","edtech",
+    "online class","homework","grades","attendance","fee","timetable","scholarship",
   ],
   ecommerce: [
-    "shop","store","sell","product","buy","cart","checkout","order","inventory","catalogue",
-    "ecommerce","e-commerce","marketplace","retail","purchase","item","listing","vendor",
-    "supplier","wholesale","delivery","shipping","cod","payment","price","discount","coupon",
+    "shop","store","sell","selling","product","buy","buying","cart","checkout",
+    "order","catalogue","inventory","ecommerce","e-commerce","marketplace","retail",
+    "purchase","item","listing","vendor","wholesale","delivery","shipping","cod",
+    "discount","coupon","wishlist","returns","refund","stock","sku","dropship",
   ],
   restaurant: [
-    "restaurant","cafe","food","menu","recipe","hotel","canteen","tiffin","catering","bakery",
-    "dhaba","bar","pub","pizza","biryani","delivery","dine","eat","order food","table booking",
-    "reservation","cloud kitchen","swiggy","zomato",
+    "restaurant","cafe","coffee","food","menu","recipe","hotel","canteen","tiffin",
+    "catering","bakery","dhaba","bar","pub","pizza","biryani","delivery","dine",
+    "eat","table","reservation","cloud kitchen","swiggy","zomato","kitchen","chef",
   ],
   medical: [
     "hospital","clinic","doctor","medical","health","patient","appointment","medicine",
-    "pharmacy","diagnostic","lab","test report","prescription","nursing","dental","eye",
-    "ayurveda","healthcare","therapy","physiotherapy","mental health","counselling",
+    "pharmacy","diagnostic","lab","report","prescription","nursing","dental","eye",
+    "ayurveda","healthcare","therapy","physiotherapy","mental","counselling","telemedicine",
+    "blood","x-ray","scan","surgery","specialist","opd","ward","icu",
   ],
   portfolio: [
-    "portfolio","resume","personal","freelance","showcase","my work","cv","hire me",
-    "designer","developer","artist","photographer","writer","illustrator","model",
-    "creative","work samples","projects showcase",
+    "portfolio","resume","personal","freelance","showcase","cv","hire","designer",
+    "developer","artist","photographer","writer","illustrator","model","creative",
+    "work samples","my work","personal brand","about me","freelancer",
   ],
   real_estate: [
-    "property","real estate","house","flat","apartment","plot","villa","office space",
-    "commercial","residential","rent","buy property","pg","hostel","real-estate",
-    "builder","broker","agent","realty","land","bhk",
+    "property","real estate","house","flat","apartment","plot","villa","office",
+    "commercial","residential","rent","buy house","pg","hostel","bhk","builder",
+    "broker","agent","realty","land","sqft","project","society","floor plan",
   ],
   saas: [
     "saas","software","platform","tool","dashboard","crm","erp","hrm","automation",
-    "workflow","management system","tracking","subscription","b2b","api","integration",
-    "enterprise","startup","app","web app","webapp","system","portal",
+    "workflow","management system","tracking","subscription","b2b","api","enterprise",
+    "startup","webapp","web app","system","portal","admin panel","cloud","multi-tenant",
   ],
   business: [
-    "business","company","agency","corporate","firm","service","consultancy","consultancy",
-    "startup","brand","professional","office","manufacturing","supplier","import","export",
-    "logistics","transport","security","it company","digital agency",
+    "business","company","agency","corporate","firm","service","consultancy","brand",
+    "professional","office","manufacturing","supplier","import","export","logistics",
+    "transport","security","digital agency","it company","solutions","infrastructure",
   ],
   blog: [
-    "blog","article","news","magazine","journal","media","publishing","content","write",
-    "newsletter","editorial","post","author","journalism","storytelling",
+    "blog","article","news","magazine","journal","media","publishing","content",
+    "write","newsletter","editorial","post","author","journalism","storytelling","viral",
   ],
   ngo: [
     "ngo","charity","nonprofit","non-profit","trust","foundation","donate","donation",
-    "social work","volunteer","cause","fundraising","awareness","welfare","helpline",
+    "social work","volunteer","cause","fundraising","welfare","helpline","80g",
   ],
   event: [
     "event","wedding","party","conference","seminar","concert","festival","expo",
-    "meetup","ticket","booking","registration","venue","celebration","ceremony","anniversary",
+    "meetup","ticket","booking","registration","venue","celebration","anniversary",
+    "ceremony","invitation","rsvp","attendee","speaker","sponsor",
   ],
   travel: [
     "travel","tour","trip","tourism","holiday","vacation","hotel booking","flights",
-    "adventure","trekking","backpacking","travel agency","pilgrimage","visa",
+    "adventure","trekking","backpacking","travel agency","pilgrimage","visa","itinerary",
+    "destination","resort","cruise","safari","package tour",
   ],
   fitness: [
     "gym","fitness","yoga","workout","exercise","diet","nutrition","health club",
     "trainer","sports","cricket","football","wellness","meditation","transformation",
+    "weight loss","muscle","crossfit","zumba","aerobics","personal trainer",
+  ],
+  finance: [
+    "finance","loan","insurance","investment","mutual fund","stock","trading","bank",
+    "fintech","wallet","upi","payment","accounting","tax","gst","ca","audit","wealth",
+    "credit","debit","emi","financial planning",
+  ],
+  matrimony: [
+    "matrimony","marriage","wedding","shaadi","bride","groom","rishta","match",
+    "matrimonial","spouse","alliance","shaadi.com","jeevansathi",
   ],
   other: [],
 };
 
-// ── Feature suggestions by category ──────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// FEATURE DATABASE — domain-specific, curated
+// ─────────────────────────────────────────────────────────────────
 
-export const FEATURES_BY_CATEGORY: Record<ProjectCategory, string[]> = {
+export const FEATURES: Record<ProjectCategory, string[]> = {
   educational: [
     "Student Login & Profiles",
-    "Course / Lesson Management",
-    "Quiz & Assignments",
+    "Course / Subject Management",
+    "Quiz, Tests & Assignments",
     "Progress & Grade Tracker",
-    "Video Lessons (YouTube embed)",
+    "Video Lessons (YouTube / Upload)",
     "Certificate Generation",
     "Teacher / Instructor Dashboard",
-    "Discussion Forum",
-    "Attendance System",
+    "Discussion Forum / Doubt Section",
+    "Attendance Management",
     "Notice Board & Announcements",
     "Fee Management & Receipts",
-    "Parent Login & Portal",
+    "Parent Login & Reports",
     "Live Class Links (Zoom / Meet)",
     "Study Material Downloads",
-    "Student Batch Management",
+    "Student Batch & Schedule Management",
+    "Admission / Enrollment Form",
   ],
   ecommerce: [
     "Product Catalog & Search",
@@ -130,139 +141,146 @@ export const FEATURES_BY_CATEGORY: Record<ProjectCategory, string[]> = {
     "Order Tracking & History",
     "Customer Accounts & Wishlist",
     "Admin Product Management",
-    "Inventory & Stock Management",
-    "Discount & Coupon System",
+    "Inventory & Stock Alerts",
+    "Discount Codes & Offers",
     "Product Reviews & Ratings",
-    "Email / SMS Order Notifications",
-    "Return & Refund System",
-    "Related Products",
-    "Bulk Order / Wholesale",
     "GST Invoice Generation",
+    "Email / WhatsApp Order Updates",
+    "Return & Refund System",
+    "Related / Recommended Products",
+    "Bulk / Wholesale Pricing",
+    "Multi-category Navigation",
   ],
   restaurant: [
-    "Online Menu with Photos",
-    "Online Ordering System",
+    "Online Menu with Photos & Prices",
+    "Online Food Ordering",
     "Table Booking / Reservation",
-    "Razorpay / UPI Payment",
+    "Razorpay / UPI / COD Payment",
     "Order Tracking",
     "WhatsApp Order Integration",
     "Customer Reviews & Ratings",
-    "Loyalty / Points Program",
-    "Admin Dashboard",
+    "QR Code Menu (No-contact)",
+    "Admin Order Dashboard",
     "Menu / Pricing Management",
-    "Home Delivery Module",
-    "QR Code Menu",
+    "Home Delivery Zone Setup",
+    "Loyalty / Points Program",
+    "Special Offers & Combos",
   ],
   medical: [
     "Doctor Profiles & Specializations",
     "Online Appointment Booking",
-    "Patient Login Portal",
-    "Medical Records / Reports",
+    "Patient Login & Portal",
+    "Medical Records & Reports",
     "Prescription Management",
     "WhatsApp Appointment Reminders",
     "Online Consultation / Telemedicine",
     "Admin / Reception Dashboard",
-    "Emergency Contact & Helpline",
-    "Blog / Health Tips",
-    "Insurance Info",
     "Lab Reports Download",
+    "Insurance Info",
+    "Emergency Contact & Helpline",
+    "Blog / Health Articles",
+    "Ambulance / Emergency Services",
   ],
   portfolio: [
     "Portfolio / Work Gallery",
     "About Me & Bio",
-    "Contact Form",
-    "Testimonials",
+    "Contact Form & Social Links",
+    "Testimonials from Clients",
     "Blog / Case Studies",
-    "Social Media Links",
     "SEO Optimization",
     "Resume / CV Download",
     "Project Showcase with Details",
-    "Skills & Experience Section",
-    "Dark / Light Mode",
-    "Hire Me CTA",
+    "Skills & Experience Timeline",
+    "Dark / Light Mode Toggle",
+    "Hire Me / Enquiry CTA",
+    "Awards & Certifications",
   ],
   real_estate: [
-    "Property Listings with Photos",
-    "Search & Filter (Location / Price / Type)",
+    "Property Listings with Photos & Price",
+    "Search & Filter (Location / Type / Budget)",
     "Property Detail Page & Gallery",
-    "Virtual Tour / 360° View",
-    "Contact Agent / Inquiry Form",
+    "360° Virtual Tour",
+    "Contact Agent / Enquiry Form",
     "WhatsApp Chat Button",
     "EMI Calculator",
     "Property Comparison",
-    "Admin Property Management",
-    "Lead & Enquiry Management",
     "Map Integration",
-    "Featured Properties Section",
+    "Lead & Enquiry Management",
+    "Featured & Exclusive Properties",
+    "Home Loan Assistance Info",
+    "Builder / Project Profile",
   ],
   saas: [
     "User Registration & Login",
     "Subscription Plans & Billing",
     "Main Dashboard & Analytics",
-    "API Integration Support",
-    "Super Admin Panel",
-    "Email & In-App Notifications",
-    "Multi-tenant / Multi-user",
+    "Admin Super Panel",
     "Role-based Access Control",
-    "Data Export (CSV / Excel)",
+    "API Integration Support",
+    "Email & In-app Notifications",
+    "Multi-tenant Architecture",
+    "Data Export (CSV / Excel / PDF)",
     "Audit Logs & Activity Tracking",
     "Two-factor Authentication",
     "Payment Gateway (Razorpay)",
+    "Customer Support / Ticket System",
+    "Usage Limits & Quota Management",
   ],
   business: [
-    "About Company & Team Page",
+    "About Company & Team",
     "Services / Products Page",
     "Contact Form & Google Maps",
     "WhatsApp Chat Button",
-    "Testimonials / Client Reviews",
+    "Testimonials & Client Logos",
     "Blog / News Section",
     "SEO Optimization",
     "Photo / Video Gallery",
-    "Social Media Integration",
     "Lead Generation Form",
+    "Social Media Integration",
     "Careers / Job Listings",
-    "Live Chat Support",
+    "Live Chat Widget",
+    "Case Studies / Portfolio",
   ],
   blog: [
     "Article & Post Management",
-    "Categories & Tags",
+    "Categories, Tags & Search",
     "Comment System",
-    "Search Functionality",
     "Newsletter Subscription",
-    "Social Media Sharing",
+    "Social Sharing Buttons",
     "SEO & Meta Management",
     "Author Profiles",
     "Related Posts",
     "Admin CMS Panel",
-    "Ad Banner Slots",
+    "Ad Banner Integration",
     "RSS Feed",
+    "Dark Mode Support",
   ],
   ngo: [
-    "Cause / Mission Page",
+    "Cause / Mission & Vision Page",
     "Online Donation (Razorpay)",
-    "Donation Campaigns",
+    "Donation Campaigns & Goals",
     "Volunteer Registration",
-    "Impact Stories / Blog",
-    "Transparency / Financial Reports",
-    "Events & Activities",
-    "Gallery",
+    "Impact Stories & Blog",
+    "Transparency Reports",
+    "Gallery & Events",
     "Helpline / Contact",
     "Newsletter",
-    "WhatsApp Integration",
-    "80G Tax Exemption Certificate",
+    "WhatsApp Updates",
+    "80G Tax Certificate",
+    "Social Media Integration",
   ],
   event: [
     "Event Details & Schedule",
     "Online Ticket Booking",
-    "Razorpay Payment",
-    "Attendee Registration",
+    "Razorpay / UPI Payment",
+    "Attendee Registration Form",
     "QR Code Entry Pass",
     "Speaker / Performer Profiles",
-    "Gallery & Highlights",
+    "Photo Gallery & Highlights",
     "Countdown Timer",
-    "Map & Venue Details",
-    "WhatsApp Updates",
-    "Email Confirmation",
+    "Venue Map & Directions",
+    "Sponsor Showcase",
+    "WhatsApp & Email Invites",
     "Admin Attendee Management",
   ],
   travel: [
@@ -270,28 +288,54 @@ export const FEATURES_BY_CATEGORY: Record<ProjectCategory, string[]> = {
     "Online Booking & Payment",
     "Itinerary Builder",
     "Photo Gallery",
-    "Customer Reviews",
-    "WhatsApp Enquiry",
+    "Customer Reviews & Ratings",
+    "WhatsApp Enquiry Button",
     "Blog / Travel Tips",
     "Custom Trip Request Form",
-    "Visa & Travel Info",
+    "Visa & Travel Guide Info",
     "Map Integration",
     "Admin Booking Management",
-    "Seasonal Offer Banners",
+    "Seasonal Offers & Banners",
   ],
   fitness: [
-    "Membership Plans & Fees",
-    "Online Enrollment / Registration",
+    "Membership Plans & Online Enrollment",
+    "Online Payment (Razorpay)",
     "Class Schedule & Timetable",
     "Trainer Profiles",
     "Transformation Gallery",
     "Diet & Nutrition Blog",
-    "Online Payment (Razorpay)",
     "Member Login & Progress Tracker",
-    "WhatsApp Group Updates",
     "Attendance System",
+    "WhatsApp Group Updates",
     "Video Workout Library",
-    "BMI Calculator",
+    "BMI & Calorie Calculator",
+    "Supplement / Product Store",
+  ],
+  finance: [
+    "Service & Product Listings",
+    "Lead / Inquiry Form",
+    "EMI & Loan Calculator",
+    "Client Login Portal",
+    "Document Upload & Management",
+    "Blog / Financial Tips",
+    "WhatsApp Consultation",
+    "Appointment Booking",
+    "Testimonials",
+    "Security & Trust Badges",
+    "GST & Tax Info Pages",
+  ],
+  matrimony: [
+    "Profile Registration",
+    "Profile Search & Filters",
+    "Photo Gallery per Profile",
+    "Match Suggestions (AI)",
+    "Kundli / Horoscope Matching",
+    "Privacy Controls",
+    "Premium Membership Plans",
+    "Messaging / Interest System",
+    "Admin Panel",
+    "WhatsApp / Phone Connect (Premium)",
+    "Success Stories",
   ],
   other: [
     "User Login & Registration",
@@ -309,156 +353,221 @@ export const FEATURES_BY_CATEGORY: Record<ProjectCategory, string[]> = {
   ],
 };
 
-// ── Design options by category ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// DESIGN STYLES per category
+// ─────────────────────────────────────────────────────────────────
 
-export const DESIGN_BY_CATEGORY: Record<ProjectCategory, string[]> = {
-  educational: ["🎓 Clean & Academic", "🌈 Colorful & Engaging", "💡 Modern & Minimal", "🎮 Fun & Interactive"],
+export const DESIGNS: Record<ProjectCategory, string[]> = {
+  educational: ["🎓 Clean & Academic", "🌈 Colorful & Student-Friendly", "💡 Modern & Minimal", "🎮 Fun & Interactive"],
   ecommerce:   ["🛍️ E-commerce Premium", "⚡ Bold & High-Conversion", "🎨 Minimal & Elegant", "🌟 Trendy & Youth"],
   restaurant:  ["🍽️ Elegant & Appetizing", "🔥 Bold & Vibrant", "🌿 Natural & Organic", "🎨 Modern & Minimal"],
-  medical:     ["🏥 Clean & Professional", "💙 Calm & Trustworthy", "🌿 Wellness & Natural", "⚡ Modern & Tech"],
-  portfolio:   ["✨ Creative & Unique", "🖤 Dark & Sleek", "🎨 Minimal & White", "💫 Bold & Colorful"],
-  real_estate: ["🏠 Premium & Luxurious", "💼 Corporate & Professional", "🌿 Modern & Clean", "🔵 Bold & Trustworthy"],
+  medical:     ["🏥 Clean & Professional", "💙 Calm & Trustworthy", "🌿 Wellness & Natural", "⚡ Modern Tech"],
+  portfolio:   ["✨ Creative & Unique", "🖤 Dark & Sleek", "🎨 Minimal & White Space", "💫 Bold & Colorful"],
+  real_estate: ["🏠 Premium & Luxurious", "💼 Corporate & Trusted", "🌿 Modern & Clean", "🔵 Bold & Professional"],
   saas:        ["💻 Tech / Startup", "⚡ Clean & Functional", "🌙 Dark Mode Premium", "🎯 Conversion-Focused"],
   business:    ["💼 Corporate & Professional", "🌟 Bold & Modern", "🎨 Creative Agency", "🌿 Clean & Minimal"],
   blog:        ["📰 Editorial & Clean", "🎨 Creative & Visual", "⚡ Fast & Minimal", "🌈 Colorful & Engaging"],
-  ngo:         ["💚 Warm & Trustworthy", "🌟 Inspiring & Bold", "🕊️ Clean & Minimal", "🌈 Colorful & Optimistic"],
-  event:       ["🎉 Festive & Vibrant", "🖤 Dark & Premium", "✨ Elegant & Luxurious", "🌈 Colorful & Energetic"],
+  ngo:         ["💚 Warm & Trustworthy", "🌟 Inspiring & Bold", "🕊️ Clean & Minimal", "🌈 Hopeful & Optimistic"],
+  event:       ["🎉 Festive & Vibrant", "🖤 Dark & Premium", "✨ Elegant & Luxurious", "🌈 Energetic & Colorful"],
   travel:      ["✈️ Adventurous & Vibrant", "🌿 Natural & Fresh", "🌙 Exotic & Dark", "☀️ Bright & Tropical"],
   fitness:     ["💪 Bold & Energetic", "⚡ Dark & Intense", "🌿 Health & Wellness", "🔵 Clean & Modern"],
+  finance:     ["💼 Professional & Trustworthy", "🔵 Clean & Corporate", "⚡ Modern & Minimal", "🌿 Calm & Reliable"],
+  matrimony:   ["❤️ Warm & Romantic", "🌸 Elegant & Traditional", "✨ Modern & Premium", "🌺 Colorful & Festive"],
   other:       ["🎨 Modern & Minimal", "🌟 Bold & Colorful", "💼 Corporate / Professional", "💻 Tech / Startup"],
 };
 
-// ── Budget advice ─────────────────────────────────────────────────
-
-export function getBudgetAdvice(budget: string, category: ProjectCategory): string {
-  const b = budget.toLowerCase();
-  const isLow    = b.includes("5,000") || b.includes("15,000") || b.includes("5k") || b.includes("15k");
-  const isMid    = b.includes("15,000") || b.includes("35,000") || b.includes("15k") || b.includes("35k");
-  const isHigh   = b.includes("35,000") || b.includes("75,000") || b.includes("35k") || b.includes("75k");
-  const isPremium = b.includes("75,000") || b.includes("75k") || b.includes("+");
-
-  if (isPremium) return `That's a great budget! 🙌 We can build a fully custom, premium ${getCategoryLabel(category)} with all the features you need, pixel-perfect design, and fast performance.`;
-  if (isHigh)    return `Solid budget! ✅ Enough to build a complete, feature-rich ${getCategoryLabel(category)} with great design and smooth user experience.`;
-  if (isMid)     return `Good range! 👍 We can build a solid ${getCategoryLabel(category)} with the core features. We'll prioritize what matters most for your users.`;
-  if (isLow)     return `That works for a clean, focused version! 💡 We'll build the most important features first — you can always add more later as you grow.`;
-  return `Got it! We'll make sure to deliver the best possible ${getCategoryLabel(category)} within your budget.`;
-}
-
-function getCategoryLabel(cat: ProjectCategory): string {
-  const labels: Record<ProjectCategory, string> = {
-    educational: "educational platform",
-    ecommerce:   "online store",
-    restaurant:  "restaurant website",
-    medical:     "healthcare website",
-    portfolio:   "portfolio site",
-    real_estate: "real estate platform",
-    saas:        "web application",
-    business:    "business website",
-    blog:        "blog/content site",
-    ngo:         "NGO website",
-    event:       "event website",
-    travel:      "travel website",
-    fitness:     "fitness website",
-    other:       "website",
-  };
-  return labels[cat] ?? "website";
-}
-
-// ── Detect category from text ─────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// CATEGORY DETECTION
+// ─────────────────────────────────────────────────────────────────
 
 export function detectCategory(text: string): ProjectCategory {
   const lower = text.toLowerCase();
-  let bestMatch: ProjectCategory = "other";
+  let best: ProjectCategory = "other";
   let bestScore = 0;
-
-  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS) as [ProjectCategory, string[]][]) {
-    const score = keywords.filter(kw => lower.includes(kw)).length;
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = cat;
-    }
+  for (const [cat, kws] of Object.entries(KEYWORDS) as [ProjectCategory, string[]][]) {
+    const score = kws.filter(kw => lower.includes(kw)).length;
+    if (score > bestScore) { bestScore = score; best = cat; }
   }
-  return bestMatch;
+  return best;
 }
 
-// ── Claude system prompt ──────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// CONTEXT EXTRACTION — understands what user said
+// ─────────────────────────────────────────────────────────────────
 
-export const VIX_SYSTEM_PROMPT = `You are Vix, a friendly and expert project consultant for Websevix — a premium web development company in India. Your job is to help non-technical clients define their web/app project through a natural, friendly conversation.
+interface DescriptionContext {
+  audience: string;      // "students", "customers", "patients", etc.
+  purpose: string;       // "learn coding", "sell products", etc.
+  scale: string;         // "small", "large"
+  hasWho: boolean;
+  hasWhat: boolean;
+}
 
-PERSONALITY & TONE:
-- Warm, encouraging, like a knowledgeable friend
-- Use simple everyday language — ZERO technical jargon
-- Be specific and relevant — never give generic responses
-- Keep each message SHORT (2-4 sentences max)
-- Use relevant emojis naturally (don't overdo it)
+export function extractContext(desc: string, projectType?: string | null): DescriptionContext {
+  const lower = desc.toLowerCase();
 
-CRITICAL INTELLIGENCE RULES:
-- ALWAYS analyze what the user is building and suggest RELEVANT features only
-- For educational projects: suggest courses, quiz, attendance, student login, certificates — NOT WhatsApp shop, product catalog
-- For e-commerce: suggest cart, payments, inventory — NOT quiz, attendance system
-- For restaurant: suggest menu, table booking, food ordering — NOT course management
-- For medical: suggest appointments, doctor profiles — NOT shopping cart
-- NEVER suggest irrelevant features. Think like a domain expert.
-- If user mentions "educational website" or "school website" or "coaching website" → suggest educational features ONLY
-- If user mentions "online store" or "sell products" → suggest e-commerce features ONLY
+  // Audience detection
+  const audienceMap: [string, string][] = [
+    ["student",   "students"],
+    ["learner",   "learners"],
+    ["customer",  "customers"],
+    ["patient",   "patients"],
+    ["client",    "clients"],
+    ["visitor",   "visitors"],
+    ["user",      "users"],
+    ["member",    "members"],
+    ["employee",  "employees"],
+    ["teacher",   "teachers"],
+    ["doctor",    "doctors"],
+    ["buyer",     "buyers"],
+    ["seller",    "sellers"],
+    ["traveller", "travellers"],
+    ["children",  "children"],
+    ["kid",       "kids"],
+    ["parent",    "parents"],
+    ["athlete",   "athletes"],
+  ];
 
-CONVERSATION FLOW (follow strictly):
-Step 1 → Ask what type of project (show chips)
-Step 2 → Ask to describe it in detail (who uses it, what problem it solves)
-Step 3 → Based on their description, suggest RELEVANT features as checkboxes (context-aware!)
-Step 4 → Ask design preference (show relevant style chips)
-Step 5 → Ask budget range
-Step 6 → Ask timeline
-Step 7 → Ask for reference websites (optional)
-Step 8 → Generate summary and ask to confirm
+  let audience = "";
+  for (const [singular, plural] of audienceMap) {
+    if (lower.includes(singular)) { audience = plural; break; }
+  }
 
-FEATURE SUGGESTION LOGIC (VERY IMPORTANT):
-When suggesting features in Step 3, analyze the user's project description carefully:
-- Educational/school/coaching/course → suggest: student login, course management, quiz & tests, attendance, certificates, fee management, progress tracking, notice board, parent portal, video lessons
-- E-commerce/shop/store → suggest: product catalog, shopping cart, payment gateway, order tracking, inventory, reviews, discount system
-- Restaurant/food/cafe → suggest: online menu, table booking, online ordering, payment, reviews, admin dashboard
-- Medical/hospital/clinic → suggest: appointment booking, doctor profiles, patient login, medical records, WhatsApp reminders
-- Business/company/agency → suggest: about page, services, contact form, WhatsApp, testimonials, SEO
-- Portfolio → suggest: work gallery, contact form, testimonials, SEO, about me, blog
+  // Purpose extraction (simple keyword match)
+  const purposeMap: [string, string][] = [
+    ["learn",     "learning and education"],
+    ["sell",      "selling products / services"],
+    ["book",      "booking and reservations"],
+    ["order",     "ordering online"],
+    ["course",    "online courses"],
+    ["appointment", "booking appointments"],
+    ["donate",    "donation and fundraising"],
+    ["hire",      "showcasing work and getting hired"],
+    ["blog",      "publishing content"],
+    ["track",     "tracking and management"],
+    ["connect",   "connecting people"],
+    ["manage",    "management and operations"],
+    ["quiz",      "quizzes and assessments"],
+    ["ticket",    "ticket booking"],
+    ["register",  "registration and enrollment"],
+  ];
 
-BUDGET RESPONSE:
-- ₹5k-15k: Honest — "This works for a basic version. We'll focus on the 4-5 most important features."
-- ₹15k-35k: "Great! We can build something solid with core features and good design."
-- ₹35k-75k: "Excellent budget! Full-featured with premium design and smooth UX."
-- ₹75k+: "Premium budget! We can build something world-class."
+  let purpose = "";
+  for (const [kw, label] of purposeMap) {
+    if (lower.includes(kw)) { purpose = label; break; }
+  }
 
-RESPONSE FORMAT — ALWAYS return valid JSON only, no markdown, no extra text:
+  // Scale
+  const scale = (lower.includes("large") || lower.includes("enterprise") || lower.includes("many") || lower.includes("thousands"))
+    ? "large" : "small";
+
+  return {
+    audience,
+    purpose,
+    scale,
+    hasWho:  !!audience || lower.includes(" for ") || lower.includes(" who "),
+    hasWhat: desc.length > 30,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BUDGET ADVICE
+// ─────────────────────────────────────────────────────────────────
+
+export function getBudgetAdvice(budget: string, category: ProjectCategory): string {
+  const b = budget.toLowerCase();
+  const label = CATEGORY_LABELS[category] ?? "website";
+  if (b.includes("75,000") || b.includes("75k") || b.includes("+")) {
+    return `Premium budget! 🚀 We can build a world-class ${label} with everything you need — custom design, all features, and top performance.`;
+  }
+  if (b.includes("35,000") || b.includes("35k")) {
+    return `Solid budget! ✅ Enough for a complete, feature-rich ${label} with great design and smooth user experience.`;
+  }
+  if (b.includes("15,000") || b.includes("15k")) {
+    return `Good range! 👍 We'll build a solid ${label} with the core features you need. We'll prioritize smartly.`;
+  }
+  return `That works for a clean, focused version! 💡 We'll build the most important features first — you can scale up later as you grow.`;
+}
+
+const CATEGORY_LABELS: Record<ProjectCategory, string> = {
+  educational: "educational platform",
+  ecommerce:   "online store",
+  restaurant:  "restaurant website",
+  medical:     "healthcare platform",
+  portfolio:   "portfolio site",
+  real_estate: "real estate platform",
+  saas:        "web application",
+  business:    "business website",
+  blog:        "blog / content site",
+  ngo:         "NGO website",
+  event:       "event website",
+  travel:      "travel platform",
+  fitness:     "fitness website",
+  finance:     "finance website",
+  matrimony:   "matrimony portal",
+  other:       "website",
+};
+
+// ─────────────────────────────────────────────────────────────────
+// CLAUDE SYSTEM PROMPT (used when API key is set)
+// ─────────────────────────────────────────────────────────────────
+
+export const VIX_SYSTEM_PROMPT = `You are Vix, an expert and friendly project consultant for Websevix — a premium web development company in India. Your role is to help non-technical clients define their project through a smart, warm, natural conversation.
+
+CORE BEHAVIOR:
+- Think like a senior project manager + domain expert
+- ALWAYS analyze what the user is actually saying — don't give generic answers
+- If user described their project, reference specific details they mentioned
+- Each response must feel PERSONALIZED to what this specific user said
+- Never ask a question they already answered
+- Keep messages SHORT (2-4 sentences) — no long paragraphs
+
+DOMAIN INTELLIGENCE — suggest ONLY relevant features:
+- Educational (school/coaching/course/lms) → student login, courses, quiz, attendance, certificates, fees, progress, notice board
+- E-commerce (shop/sell/store/products) → product catalog, cart, payment, order tracking, inventory, reviews
+- Restaurant (food/cafe/menu) → online menu, ordering, table booking, QR menu, WhatsApp orders
+- Medical (hospital/clinic/doctor) → appointments, doctor profiles, patient portal, records, telemedicine
+- Real Estate (property/house/flat) → listings, search/filter, EMI calculator, map, lead management
+- SaaS/Web App (platform/tool/dashboard) → user auth, subscription, dashboard, admin panel, API
+- Business (company/agency/services) → about, services, contact, WhatsApp, testimonials, SEO
+- NEVER mix features across domains (no "blog" for fitness, no "cart" for education unless specifically asked)
+
+CONVERSATION STEPS (in order):
+1. Project type (show quick-reply chips with 12 categories)
+2. Description — acknowledge specifically what they said, don't ask generic "who will use it" if they already told you
+3. Features — show ONLY relevant checkboxes (8-10 max, domain-specific)
+4. Design style — show 4 relevant options
+5. Budget — give honest, specific advice for their project type
+6. Timeline — show 4 chips
+7. References — optional, show "Skip" option
+8. Summary — show complete brief, ask to confirm
+
+RESPONSE FORMAT — return ONLY valid JSON:
 {
-  "message": "Your friendly, contextual message (2-4 sentences)",
+  "message": "Personalized, specific message based on what user actually said",
   "collectedData": {
-    "projectType": "string or null",
-    "description": "string or null",
+    "projectType": "extracted type or null",
+    "description": "their description or null",
     "features": ["selected features"] or [],
-    "designStyle": "string or null",
-    "budget": "string or null",
-    "timeline": "string or null",
-    "references": [] or ["urls"]
+    "designStyle": "style or null",
+    "budget": "budget or null",
+    "timeline": "timeline or null",
+    "references": [] or ["links"]
   },
-  "showChips": ["option1", "option2"] or null,
-  "showCheckboxes": ["feature1", "feature2", "feature3", "feature4", "feature5", "feature6", "feature7", "feature8"] or null,
+  "showChips": ["option1"] or null,
+  "showCheckboxes": ["feature1", "feature2"] or null,
   "currentStep": "project_type|description|features|design|budget|timeline|references|summary",
   "isComplete": false
 }
 
-EXAMPLE — Educational website response to features step:
-{
-  "message": "Perfect! Since you're building an educational platform, here are the most useful features. Pick the ones that fit your needs:",
-  "collectedData": {...},
-  "showCheckboxes": ["Student Login & Profiles", "Course / Lesson Management", "Quiz & Assignments", "Progress & Grade Tracker", "Video Lessons", "Certificate Generation", "Attendance System", "Fee Management"],
-  "currentStep": "features"
-}
+CRITICAL: Return ONLY the JSON. Zero extra text. Zero markdown.`;
 
-RETURN ONLY THE JSON. NO OTHER TEXT.`;
-
-// ── Opening message ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// OPENING MESSAGE
+// ─────────────────────────────────────────────────────────────────
 
 export const OPENING_MESSAGE: AIResponse = {
-  message: "Hey! I'm Vix, your project consultant 👋\n\nI'll help you plan your project and get it started. Takes only 3-5 minutes — let's figure out exactly what you need!\n\nFirst — what kind of project are you thinking about?",
+  message: "Hey! I'm Vix, your project consultant 👋\n\nI'll help you plan your project — takes just 3-5 minutes. Let's figure out exactly what you need!\n\nWhat kind of project are you building?",
   collectedData: {},
   showChips: [
     "📚 Educational / Coaching",
@@ -472,7 +581,7 @@ export const OPENING_MESSAGE: AIResponse = {
     "✈️ Travel / Tourism",
     "💪 Fitness / Gym",
     "🎉 Event / Wedding",
-    "📰 Blog / News",
+    "📰 Blog / Content",
   ],
   currentStep: "project_type",
   isComplete: false,
