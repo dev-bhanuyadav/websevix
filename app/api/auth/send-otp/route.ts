@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     console.error("[send-otp]", e);
     const msg = e instanceof Error ? e.message : "Server error";
-    const isConfig = msg.includes("MONGODB_URI") || msg.includes("connect");
-    const isGmail  = msg.includes("GMAIL") || msg.includes("ECONNREFUSED") || msg.includes("auth");
+    const isConfig = msg.includes("MONGODB_URI") || msg.includes("connect ECONNREFUSED");
+    const isSMTP   = msg.includes("SMTP") || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND") || msg.includes("Invalid login") || msg.includes("auth");
     return jsonResponse(
-      { error: isConfig ? "Database not configured." : isGmail ? "Email service not configured." : "Failed to send OTP" },
+      { error: isConfig ? "Database not configured." : isSMTP ? "Email service error — check SMTP settings." : "Failed to send OTP" },
       500
     );
   }
