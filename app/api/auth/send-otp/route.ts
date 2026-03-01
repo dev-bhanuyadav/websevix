@@ -15,29 +15,43 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = sendOtpSchema.safeParse(body);
     if (!parsed.success) return jsonResponse({ error: "Invalid request" }, 400);
+
     const { email, type } = parsed.data;
+
+    // Rate limiting
     const limit = otpSendLimit(email);
     if (!limit.allowed)
-      return jsonResponse({ error: "Too many OTPs", retryAfter: limit.retryAfter }, 429);
+      return jsonResponse({ error: "Too many OTPs sent. Try again later.", retryAfter: limit.retryAfter }, 429);
+
     const cooldown = otpResendCooldown(email);
     if (!cooldown.allowed)
-      return jsonResponse({ error: "Please wait", retryAfter: cooldown.retryAfter }, 429);
-    const otp = randomInt(100000, 999999).toString();
+      return jsonResponse({ error: "Please wait before resending.", retryAfter: cooldown.retryAfter }, 429);
+
+    // Generate & hash OTP
+    const otp       = randomInt(100000, 999999).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    // Save to DB
     await connectDB();
     await OTP.deleteMany({ email, type, used: false });
     await OTP.create({ email, otp: hashedOtp, type, attempts: 0, expiresAt, used: false });
+
+    // Send via PHP mailer
     await sendOTPEmail(email, otp, OTP_EXPIRY_MINUTES);
+
     return jsonResponse({ success: true, expiresIn: OTP_EXPIRY_MINUTES * 60 });
+
   } catch (e) {
-    console.error("[send-otp]", e);
-    const msg = e instanceof Error ? e.message : "Server error";
-    const isConfig = msg.includes("MONGODB_URI") || msg.includes("connect ECONNREFUSED");
-    const isSMTP   = msg.includes("SMTP") || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND") || msg.includes("Invalid login") || msg.includes("auth");
-    return jsonResponse(
-      { error: isConfig ? "Database not configured." : isSMTP ? "Email service error — check SMTP settings." : "Failed to send OTP" },
-      500
-    );
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[send-otp] ERROR:", msg);
+
+    if (msg.includes("MONGODB_URI")) {
+      return jsonResponse({ error: "Database not configured." }, 500);
+    }
+    if (msg.includes("PHP mailer") || msg.includes("ENOTFOUND") || msg.includes("fetch")) {
+      return jsonResponse({ error: `Email delivery failed: ${msg}` }, 500);
+    }
+    return jsonResponse({ error: "Failed to send OTP. Please try again." }, 500);
   }
 }
