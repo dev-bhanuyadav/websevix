@@ -37,7 +37,7 @@ Har commit par Git ye batata hai ki "kisne commit kiya" — iske liye **name** a
 
 ```bash
 git config --global user.name "Bhanu Yadav"
-git config --global user.email "dev-bhanuyadav@gmail.com"
+git config --global user.email "developerbhanuyadav@gmail.com"
 ```
 
 - `user.name` — jo naam commits par dikhega (jaise "Bhanu Yadav").  

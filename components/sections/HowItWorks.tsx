@@ -1,129 +1,91 @@
 "use client";
 
-import { useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, Users, ShieldCheck } from "lucide-react";
+import { FileSearch, UserCheck, Rocket } from "lucide-react";
 import { howItWorksSteps } from "@/data/content";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import TiltCard from "@/components/ui/TiltCard";
 
-const easing = [0.25, 0.1, 0.25, 1] as const;
-const icons = { FileText, Users, ShieldCheck };
+const ease = [0.25, 0.1, 0.25, 1] as const;
+
+const iconMap = { FileText: FileSearch, Users: UserCheck, ShieldCheck: Rocket };
+const iconColors = [
+  "from-violet-600 to-violet-400",
+  "from-cyan-500 to-cyan-400",
+  "from-violet-500 to-cyan-500",
+];
+const numberColors = ["text-violet-400", "text-cyan-400", "text-violet-300"];
 
 export default function HowItWorks() {
-  const reducedMotion = useReducedMotion();
+  const rm = useReducedMotion();
 
   return (
-    <section id="how-it-works" className="relative py-24 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.h2
-          className="font-display font-bold text-3xl sm:text-4xl lg:text-5xl text-center text-text-primary mb-4"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: easing }}
-        >
-          How It Works
-        </motion.h2>
-        <motion.p
-          className="text-text-muted text-center max-w-2xl mx-auto mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, delay: 0.1, ease: easing }}
-        >
-          Three simple steps from idea to delivery
-        </motion.p>
+    <section id="how-it-works" className="section-pad relative overflow-hidden">
+      {/* Subtle top separator */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
-          {/* Connector line (desktop) */}
-          {!reducedMotion && (
-            <svg
-              className="absolute left-0 w-full h-2 hidden md:block pointer-events-none"
-              style={{ top: "120px" }}
-              viewBox="0 0 100 2"
-              preserveAspectRatio="none"
-            >
-              <motion.path
-                d="M 0 1 L 100 1"
-                fill="none"
-                stroke="rgba(99, 102, 241, 0.3)"
-                strokeWidth="0.5"
-                initial={{ pathLength: 0 }}
-                whileInView={{ pathLength: 1 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 1.5, ease: "easeInOut" }}
-              />
-            </svg>
-          )}
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
+        {/* Header */}
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease }}
+        >
+          <p className="text-xs font-semibold text-violet-400 uppercase tracking-[0.2em] mb-3">Process</p>
+          <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.8rem] text-ink-white mb-4">
+            From Idea to Delivered — in 3 Steps
+          </h2>
+          <p className="text-ink-muted max-w-xl mx-auto text-base leading-relaxed">
+            No agency middlemen, no hidden fees. Direct collaboration with vetted developers, protected by smart escrow.
+          </p>
+        </motion.div>
 
-          {howItWorksSteps.map((step, index) => {
-            const Icon = icons[step.icon as keyof typeof icons];
+        {/* Steps */}
+        <div className="grid md:grid-cols-3 gap-5 lg:gap-6 relative">
+          {/* Connector line */}
+          <div className="hidden md:block absolute top-14 left-[calc(16.66%+2rem)] right-[calc(16.66%+2rem)] h-px">
+            <motion.div
+              className="h-full bg-gradient-to-r from-violet-600/50 via-cyan-500/50 to-violet-500/50"
+              initial={{ scaleX: 0, originX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2, delay: 0.4, ease }}
+            />
+          </div>
+
+          {howItWorksSteps.map((step, i) => {
+            const Icon = (iconMap as Record<string, React.ElementType>)[step.icon] ?? FileSearch;
             return (
               <motion.div
                 key={step.number}
-                className="relative"
-                initial={{ opacity: 0, y: 40 }}
+                className="relative group"
+                initial={{ opacity: 0, y: 32 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{
-                  duration: 0.6,
-                  delay: index * 0.15,
-                  ease: easing,
-                }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.55, delay: i * 0.15, ease }}
               >
-                <TiltCard className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 h-full">
-                  <div className="flex flex-col items-center text-center">
-                    {/* Animated number ring */}
-                    <div className="relative w-16 h-16 mb-6">
-                      <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-                        <circle
-                          cx="32"
-                          cy="32"
-                          r="28"
-                          fill="none"
-                          stroke="rgba(255,255,255,0.1)"
-                          strokeWidth="4"
-                        />
-                        <motion.circle
-                          cx="32"
-                          cy="32"
-                          r="28"
-                          fill="none"
-                          stroke="url(#stepGradient)"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                          strokeDasharray={2 * Math.PI * 28}
-                          initial={{ strokeDashoffset: 2 * Math.PI * 28 }}
-                          whileInView={{ strokeDashoffset: 0 }}
-                          viewport={{ once: true, margin: "-50px" }}
-                          transition={{ duration: 1, delay: index * 0.2, ease: "easeInOut" }}
-                        />
-                        <defs>
-                          <linearGradient id="stepGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#6366F1" />
-                            <stop offset="100%" stopColor="#8B5CF6" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center font-display font-bold text-xl text-text-primary">
-                        {step.number}
-                      </span>
+                <div className="glass card-glow rounded-2xl border border-white/[0.07] p-7 h-full flex flex-col transition-all duration-300">
+                  {/* Number + Icon row */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${iconColors[i]} flex items-center justify-center shadow-glow-sm`}>
+                      <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <motion.div
-                      whileHover={reducedMotion ? {} : { rotate: 5, scale: 1.1 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                    >
-                      {Icon && <Icon className="w-10 h-10 text-primary mx-auto mb-4" />}
-                    </motion.div>
-                    <h3 className="font-display font-semibold text-xl text-text-primary mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-text-muted text-sm leading-relaxed">
-                      {step.description}
-                    </p>
+                    <span className={`font-display font-black text-5xl leading-none ${numberColors[i]} opacity-20 group-hover:opacity-40 transition-opacity duration-300`}>
+                      0{step.number}
+                    </span>
                   </div>
-                </TiltCard>
+
+                  <h3 className="font-display font-bold text-lg text-ink-white mb-3 leading-snug">
+                    {step.title}
+                  </h3>
+                  <p className="text-ink-muted text-sm leading-relaxed flex-1">
+                    {step.description}
+                  </p>
+
+                  {/* Bottom accent */}
+                  <div className={`mt-6 h-0.5 rounded-full bg-gradient-to-r ${iconColors[i]} opacity-0 group-hover:opacity-60 transition-opacity duration-500`} />
+                </div>
               </motion.div>
             );
           })}

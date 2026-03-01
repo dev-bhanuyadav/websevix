@@ -17,36 +17,33 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "Websevix — On-Demand Web Services Marketplace",
   description:
-    "Post your project, receive proposals from vetted developers, and pay securely with milestone-based escrow. Find expert developers, build faster, pay securely.",
+    "Post your project, get proposals from vetted developers, and pay securely with milestone-based escrow. Find expert developers, build faster, pay securely.",
   keywords: [
-    "web development",
-    "freelance developers",
-    "escrow",
-    "milestone payments",
-    "web services marketplace",
+    "web development marketplace",
+    "hire developers",
+    "escrow payments",
+    "milestone-based projects",
+    "freelance web services",
   ],
   authors: [{ name: "Websevix" }],
+  themeColor: "#04040F",
   openGraph: {
     title: "Websevix — On-Demand Web Services Marketplace",
-    description:
-      "Post your project, receive proposals from vetted developers, and pay securely with milestone-based escrow.",
+    description: "Post your project, get proposals from vetted developers, and pay securely.",
     type: "website",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Websevix — On-Demand Web Services Marketplace",
-    description: "Find expert developers. Build faster. Pay securely.",
+    title: "Websevix — Build Faster. Pay Securely.",
+    description: "The professional marketplace for web services.",
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${syne.variable}`}>
-      <body className="font-sans antialiased bg-background text-text-primary">
+      <body className="font-sans antialiased bg-[#04040F] text-ink-white">
         <div className="noise-overlay" aria-hidden />
         {children}
       </body>
