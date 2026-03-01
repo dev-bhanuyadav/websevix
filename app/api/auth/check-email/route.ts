@@ -29,6 +29,11 @@ export async function POST(request: NextRequest) {
     return jsonResponse({ exists: false });
   } catch (e) {
     console.error("[check-email]", e);
-    return jsonResponse({ error: "Server error" }, 500);
+    const msg = e instanceof Error ? e.message : "Server error";
+    const isConfig = msg.includes("MONGODB_URI") || msg.includes("connect");
+    return jsonResponse(
+      { error: isConfig ? "Database not configured. Please check server setup." : "Server error" },
+      500
+    );
   }
 }

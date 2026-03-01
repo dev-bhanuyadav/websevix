@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
     return jsonResponse({ success: true, expiresIn: OTP_EXPIRY_MINUTES * 60 });
   } catch (e) {
     console.error("[send-otp]", e);
-    return jsonResponse({ error: "Failed to send OTP" }, 500);
+    const msg = e instanceof Error ? e.message : "Server error";
+    const isConfig = msg.includes("MONGODB_URI") || msg.includes("connect");
+    const isGmail  = msg.includes("GMAIL") || msg.includes("ECONNREFUSED") || msg.includes("auth");
+    return jsonResponse(
+      { error: isConfig ? "Database not configured." : isGmail ? "Email service not configured." : "Failed to send OTP" },
+      500
+    );
   }
 }

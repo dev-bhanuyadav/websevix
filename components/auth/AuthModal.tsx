@@ -83,15 +83,15 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
       const { x, y } = origin;
       canvasRef.current?.implosion(x, y);
     }
-    if (phase === "ambient") {
-      // Start micro particle loop
+      if (phase === "ambient") {
+      // Micro particles — slow interval to avoid jank
       microParticleRef.current = setInterval(() => {
         if (!modalRef.current) return;
         const rect = modalRef.current.getBoundingClientRect();
         const mx = rect.left + Math.random() * rect.width;
         const my = rect.bottom - 4;
         canvasRef.current?.microParticle(mx, my);
-      }, 700);
+      }, 2000);
     }
     return () => {
       if (microParticleRef.current) clearInterval(microParticleRef.current);
@@ -260,72 +260,52 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
         )}
       </AnimatePresence>
 
-      {/* ── Portal ── */}
+      {/* ── Portal — simple scale from point, GPU-only transform ── */}
       <AnimatePresence>
         {(phase === "portal") && !prefersReduced && (
           <motion.div
             className="fixed inset-0 z-[42] pointer-events-none flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, transition: { duration: 0.25 } }}
+            transition={{ duration: 0.15 }}
           >
             <motion.div
               className="rounded-3xl"
               style={{
-                background: "conic-gradient(from 0deg, #6366F1, #8B5CF6, #06B6D4, #6366F1)",
-                animation: "spin 0.5s linear infinite",
+                background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #06B6D4 100%)",
+                width: 440, height: 560,
               }}
-              initial={{ width: 4, height: 4, borderRadius: "50%" }}
-              animate={{ width: 440, height: 580, borderRadius: 24 }}
-              exit={{ width: 4, height: 4, borderRadius: "50%", opacity: 0 }}
+              initial={{ scale: 0, borderRadius: "50%" }}
+              animate={{ scale: 1, borderRadius: 24 }}
+              exit={{ scale: 0, borderRadius: "50%", opacity: 0 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Screen warp wrapper ── */}
-      <motion.div
-        className="w-full min-h-screen flex items-center justify-center"
-        animate={warp && !prefersReduced
-          ? { rotateX: [0, 2, 0], rotateY: [0, 1, 0], perspective: "800px" }
-          : {}}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        style={{ willChange: "transform", transformStyle: "preserve-3d" }}
-      >
-        {/* ── Background ambient orbs ── */}
-        {[
-          { color: "#6366F1", x: "-20%", y: "-30%", delay: 0   },
-          { color: "#8B5CF6", x:  "20%", y:  "30%", delay: 2.2 },
-          { color: "#06B6D4", x:   "5%", y: "-10%", delay: 4   },
+      {/* ── Content wrapper ── */}
+      <div className="w-full min-h-screen flex items-center justify-center" style={{ perspective: "1000px" }}>
+        {/* ── Background ambient orbs — CSS animation only, no Framer Motion repaints ── */}
+        {phase !== "idle" && [
+          { color: "#6366F1", left: "20%", top: "15%",  animDur: "7s",  animDelay: "0s"   },
+          { color: "#8B5CF6", left: "65%", top: "60%",  animDur: "9s",  animDelay: "2.5s" },
+          { color: "#06B6D4", left: "45%", top: "40%",  animDur: "11s", animDelay: "5s"   },
         ].map((orb, i) => (
-          <motion.div
+          <div
             key={i}
             className="absolute pointer-events-none rounded-full"
             style={{
-              background: `radial-gradient(circle, ${orb.color}30 0%, transparent 70%)`,
-              width: 500,
-              height: 500,
-              left: "50%",
-              top: "50%",
-              translateX: "-50%",
-              translateY: "-50%",
-              x: orb.x,
-              y: orb.y,
-            }}
-            animate={
-              phase === "ambient" ? {
-                scale: [1, 1.15, 1],
-                x: [orb.x, `calc(${orb.x} + 20px)`, orb.x],
-                opacity: [0.6, 0.85, 0.6],
-              } : { opacity: phase === "idle" ? 0 : 0.6 }
-            }
-            transition={{
-              duration: 5 + i * 1.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: orb.delay,
+              background: `radial-gradient(circle, ${orb.color}28 0%, transparent 70%)`,
+              width: 480,
+              height: 480,
+              left: orb.left,
+              top: orb.top,
+              transform: "translate(-50%,-50%)",
+              animation: `auroraSlow ${orb.animDur} ease-in-out infinite`,
+              animationDelay: orb.animDelay,
+              willChange: "transform",
             }}
           />
         ))}
@@ -521,7 +501,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </div>
   );
 }

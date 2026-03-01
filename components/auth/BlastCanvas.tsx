@@ -37,19 +37,12 @@ export const BlastCanvas = forwardRef<BlastCanvasHandle, BlastCanvasProps>(
     }, []);
 
     useImperativeHandle(ref, () => ({
-      explode: (x, y) => engineRef.current?.explode(x, y),
-      rings: (x, y) => {
-        const e = engineRef.current;
-        if (!e) return;
-        e.addRing(x, y, { color: "rgba(99,102,241,0.9)",  speed: 900,  maxRadius: 1600 });
-        setTimeout(() => e.addRing(x, y, { color: "rgba(139,92,246,0.7)", speed: 750,  maxRadius: 1400 }), 40);
-        setTimeout(() => e.addRing(x, y, { color: "rgba(6,182,212,0.6)",  speed: 600,  maxRadius: 1200 }), 120);
-        setTimeout(() => e.addRing(x, y, { color: "rgba(167,139,250,0.5)", speed: 500, maxRadius: 1000 }), 240);
-      },
-      implosion:   (x, y) => engineRef.current?.addImplosion(x, y),
-      confetti:    (x, y) => engineRef.current?.confetti(x, y),
-      microParticle: (x, y) => engineRef.current?.microParticle(x, y),
-      errorBurst:  (x, y) => engineRef.current?.errorBurst(x, y),
+      explode:      (x, y) => engineRef.current?.explode(x, y),
+      rings:        (x, y) => engineRef.current?.rings(x, y),
+      implosion:    (x, y) => engineRef.current?.addImplosion(x, y),
+      confetti:     (x, y) => engineRef.current?.confetti(x, y),
+      microParticle:(x, y) => engineRef.current?.microParticle(x, y),
+      errorBurst:   (x, y) => engineRef.current?.errorBurst(x, y),
     }));
 
     return (
