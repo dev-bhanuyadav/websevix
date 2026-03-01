@@ -1,103 +1,73 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Globe, Palette, ShoppingCart, Layers, Smartphone, Plug,
-  ArrowUpRight,
-} from "lucide-react";
-import { categories } from "@/data/content";
+import { Globe, Palette, ShoppingCart, Layers, Smartphone, Plug, ArrowUpRight } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-const iconMap = { Globe, Palette, ShoppingCart, Layers, Smartphone, Plug };
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
-const gradients = [
-  "from-violet-600/20 to-violet-400/5",
-  "from-cyan-500/20 to-cyan-400/5",
-  "from-violet-500/20 to-cyan-500/5",
-  "from-cyan-400/20 to-violet-500/5",
-  "from-violet-400/20 to-cyan-400/5",
-  "from-cyan-500/20 to-violet-600/5",
-];
-const iconBg = [
-  "bg-violet-600/20 text-violet-400",
-  "bg-cyan-500/20 text-cyan-400",
-  "bg-violet-500/20 text-violet-300",
-  "bg-cyan-400/20 text-cyan-400",
-  "bg-violet-400/20 text-violet-400",
-  "bg-cyan-500/20 text-cyan-400",
+const services = [
+  { icon: Globe, title: "Web Development", desc: "Custom websites, landing pages, full-stack apps", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/15" },
+  { icon: Palette, title: "UI/UX Design", desc: "Figma design systems, user flows, prototyping", color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/15" },
+  { icon: ShoppingCart, title: "E-commerce", desc: "Shopify, WooCommerce, custom storefronts", color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/15" },
+  { icon: Layers, title: "SaaS Development", desc: "Multi-tenant apps, dashboards, billing flows", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/15" },
+  { icon: Smartphone, title: "Mobile Apps", desc: "React Native, Expo, iOS & Android delivery", color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/15" },
+  { icon: Plug, title: "API & Integrations", desc: "REST, GraphQL, third-party API connections", color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/15" },
 ];
 
 export default function Categories() {
   const rm = useReducedMotion();
 
   return (
-    <section id="categories" className="section-pad relative overflow-hidden">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+    <section id="services" className="section relative overflow-hidden">
+      <div className="sep" />
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-16">
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        {/* Header */}
         <motion.div
           className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12"
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 28 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6, ease }}
         >
           <div>
-            <p className="text-xs font-semibold text-violet-400 uppercase tracking-[0.2em] mb-3">Categories</p>
-            <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.8rem] text-ink-white">
-              What Can We Build for You?
+            <p className="text-xs font-semibold text-indigo-400 uppercase tracking-[0.2em] mb-3">Services</p>
+            <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.75rem] text-snow leading-tight">
+              What can we help<br />
+              <span className="text-gradient">you build?</span>
             </h2>
           </div>
-          <a
-            href="#categories"
-            className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-violet-400 font-medium transition-colors whitespace-nowrap"
-          >
-            View all services <ArrowUpRight className="w-4 h-4" />
+          <a href="#" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate hover:text-indigo-400 transition-colors group shrink-0">
+            Browse all services <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </a>
         </motion.div>
 
-        {/* Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((cat, i) => {
-            const Icon = iconMap[cat.icon as keyof typeof iconMap];
-            const delay = (Math.floor(i / 3) + (i % 3)) * 0.07;
+          {services.map((s, i) => {
+            const row = Math.floor(i / 3);
+            const col = i % 3;
+            const delay = (row + col) * 0.07;
 
             return (
               <motion.a
-                key={cat.id}
-                href={`#category-${cat.id}`}
-                className={`group relative glass card-glow rounded-2xl border border-white/[0.07] p-6 flex items-start gap-4 cursor-pointer transition-all duration-300 overflow-hidden`}
+                key={s.title}
+                href="#"
+                className="card card-hover group p-6 flex items-start gap-4 cursor-pointer"
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
+                viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.5, delay, ease }}
-                whileHover={rm ? {} : { y: -3 }}
+                whileHover={rm ? {} : {}}
               >
-                {/* Gradient fill on hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${gradients[i]} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                {/* Top shine */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                <div className={`relative flex-shrink-0 w-11 h-11 rounded-xl ${iconBg[i]} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
-                  {Icon && <Icon className="w-5 h-5" />}
+                <div className={`flex-shrink-0 w-11 h-11 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
+                  <s.icon className={`w-5 h-5 ${s.color}`} />
                 </div>
-
-                <div className="relative flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-display font-semibold text-ink-white text-[15px] leading-snug group-hover:text-white transition-colors">
-                      {cat.title}
-                    </h3>
-                    <ArrowUpRight className="w-4 h-4 text-ink-faint group-hover:text-violet-400 transition-colors flex-shrink-0 mt-0.5" />
+                    <h3 className="font-display font-semibold text-snow text-[15px] leading-snug">{s.title}</h3>
+                    <ArrowUpRight className={`w-4 h-4 flex-shrink-0 mt-0.5 ${s.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
                   </div>
-                  <p className="text-xs text-ink-muted mt-1">
-                    <span className="text-ink-soft font-semibold">{cat.activeProjects}</span> active projects
-                  </p>
-                  <div className="mt-3 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-ring" />
-                    <span className="text-[11px] text-success font-medium">Hiring Now</span>
-                  </div>
+                  <p className="text-sm text-slate mt-1 leading-relaxed">{s.desc}</p>
                 </div>
               </motion.a>
             );

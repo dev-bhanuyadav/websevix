@@ -20,8 +20,8 @@ export default function Home() {
         <Stats />
         <Testimonials />
         <CTASection />
-        <Footer />
       </main>
+      <Footer />
     </>
   );
 }
