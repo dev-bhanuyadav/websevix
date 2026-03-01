@@ -14,7 +14,6 @@ export default function CTASection() {
     <section className="section relative overflow-hidden">
       <div className="sep" />
 
-      {/* Aurora */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {!rm && (
           <>
@@ -50,9 +49,7 @@ export default function CTASection() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 1.1, ease: EXPO }}
         >
-          {/* Top glow line */}
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent" />
-          {/* Faint corner radials */}
           <div className="absolute top-0 left-0 w-40 h-40" style={{ background: "radial-gradient(circle at top left, rgba(99,102,241,0.07), transparent 70%)" }} />
           <div className="absolute bottom-0 right-0 w-40 h-40" style={{ background: "radial-gradient(circle at bottom right, rgba(139,92,246,0.07), transparent 70%)" }} />
 
@@ -63,7 +60,7 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 0.9, ease: EXPO, delay: 0.2 }}
           >
-            Get Started Today
+            Get Started
           </motion.p>
 
           <motion.h2
@@ -73,8 +70,8 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 1.0, ease: EXPO, delay: 0.3 }}
           >
-            Ready to build{" "}
-            <span className="text-gradient-live">something great?</span>
+            Ready for your website?{" "}
+            <span className="text-gradient-live">Order now.</span>
           </motion.h2>
 
           <motion.p
@@ -84,7 +81,7 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 1.0, ease: EXPO, delay: 0.4 }}
           >
-            Post your project for free. Receive detailed proposals from vetted developers within 24 hours. No commitment required.
+            Place your order, pay securely with Razorpay, and chat with us on live chat. We’ll build and deliver your site — no developer hunting.
           </motion.p>
 
           <motion.div
@@ -95,10 +92,10 @@ export default function CTASection() {
             transition={{ duration: 1.0, ease: EXPO, delay: 0.5 }}
           >
             <Link href="#signup" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
-              Post a Project Free <ArrowRight className="w-4.5 h-4.5" />
+              Place an Order <ArrowRight className="w-4.5 h-4.5" />
             </Link>
-            <Link href="#how-it-works" className="btn-ghost inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
-              Browse Developers
+            <Link href="#contact" className="btn-ghost inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
+              Live Chat
             </Link>
           </motion.div>
 
@@ -109,7 +106,7 @@ export default function CTASection() {
             viewport={{ once: true }}
             transition={{ duration: 0.9, ease: EXPO, delay: 0.7 }}
           >
-            No credit card · Free to post · Cancel anytime
+            Pay with Razorpay · Live chat support · We build for you
           </motion.p>
         </motion.div>
       </div>

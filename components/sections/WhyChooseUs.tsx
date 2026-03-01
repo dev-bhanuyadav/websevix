@@ -1,17 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Lock, Users, BarChart3, MessageSquare, HeartHandshake, Award } from "lucide-react";
+import { CreditCard, MessageSquare, Wrench, FileCheck, Headphones } from "lucide-react";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 const features = [
-  { Icon: Lock,          title: "Escrow Payments",   desc: "Funds locked until you approve every milestone. Zero risk, full control.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
-  { Icon: Users,         title: "Vetted Developers",  desc: "Every dev passes skill assessments and identity verification before joining.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
-  { Icon: BarChart3,     title: "Milestone Tracking", desc: "Break projects into milestones, track progress in real time, stay in control.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/18"   },
-  { Icon: MessageSquare, title: "Built-in Chat",      desc: "Message, share files, review deliverables — all in one platform.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
-  { Icon: HeartHandshake,"title": "Dispute Resolution", desc: "Our mediation team ensures fair outcomes if anything goes wrong.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
-  { Icon: Award,         title: "Verified Reviews",   desc: "Every review is tied to a real completed project — no fake ratings, ever.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/18"   },
+  { Icon: CreditCard,    title: "Razorpay Payments",  desc: "Pay securely with UPI, card, or net banking. Razorpay keeps your payment safe.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
+  { Icon: MessageSquare, title: "Live Chat",         desc: "Chat with us in real time. Share files, ask questions, get updates — all in one place.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
+  { Icon: Wrench,       title: "We Build for You",  desc: "No marketplace, no picking developers. We take your order and build your website ourselves.", color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/18" },
+  { Icon: FileCheck,    title: "Clear Deliverables", desc: "We agree on scope and phases. You know exactly what you're getting and when.", color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/18" },
+  { Icon: Headphones,   title: "Support When You Need", desc: "Stuck or want changes? Reach out on live chat. We're here to help.", color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/18" },
 ];
 
 export default function WhyChooseUs() {
@@ -33,16 +32,16 @@ export default function WhyChooseUs() {
         >
           <p className="text-xs font-semibold text-indigo-400 uppercase tracking-[0.22em] mb-4">Why Websevix</p>
           <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.9rem] text-snow leading-[1.1] mb-5">
-            Built for trust.{" "}
-            <span className="text-gradient">Designed for results.</span>
+            Simple process.{" "}
+            <span className="text-gradient">We do the work.</span>
           </h2>
           <p className="text-slate text-base leading-[1.8]">
-            We&apos;ve removed every friction point between you and a great web project.
+            Order, pay with Razorpay, chat with us. We build your website — no middlemen, no developer hunting.
           </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.map((f, i) => (
+          {features.slice(0, 5).map((f, i) => (
             <motion.div
               key={f.title}
               className="card card-hover p-6 group"

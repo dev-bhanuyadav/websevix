@@ -1,38 +1,37 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PenLine, UserCheck, ShieldCheck, ArrowRight } from "lucide-react";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { FileEdit, CreditCard, MessageSquare, ArrowRight } from "lucide-react";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 const steps = [
   {
     num: "01",
-    Icon: PenLine,
-    title: "Post Your Project",
-    desc: "Describe what you need — stack, scope, timeline, budget. Your listing goes live to our curated developer network instantly.",
-    tag: "Free to post",
+    Icon: FileEdit,
+    title: "Place Your Order",
+    desc: "Tell us what you need — type of website, pages, features. We'll send you a clear quote. No hidden costs.",
+    tag: "Free quote",
     color: "text-indigo-400",
     bg: "bg-indigo-500/10 border-indigo-500/18",
     glow: "rgba(99,102,241,0.12)",
   },
   {
     num: "02",
-    Icon: UserCheck,
-    title: "Review & Hire",
-    desc: "Receive detailed proposals within 24 hours. Chat with candidates, review portfolios, and hire the right developer — no pressure.",
-    tag: "You choose",
+    Icon: CreditCard,
+    title: "Pay with Razorpay",
+    desc: "Pay securely with Razorpay — UPI, card, net banking. Your payment is safe and we only start work after you're confirmed.",
+    tag: "Secure payment",
     color: "text-violet-400",
     bg: "bg-violet-500/10 border-violet-500/18",
     glow: "rgba(139,92,246,0.12)",
   },
   {
     num: "03",
-    Icon: ShieldCheck,
-    title: "Build with Confidence",
-    desc: "Work in milestones. Funds are held in escrow and released only when you approve each stage. Full visibility, no surprises.",
-    tag: "Escrow protected",
+    Icon: MessageSquare,
+    title: "Live Chat & We Build",
+    desc: "Chat with us in real time. We build your website, share updates, and deliver. No third-party developers — just us.",
+    tag: "We build for you",
     color: "text-cyan-400",
     bg: "bg-cyan-500/10 border-cyan-500/18",
     glow: "rgba(34,211,238,0.1)",
@@ -40,8 +39,6 @@ const steps = [
 ];
 
 export default function HowItWorks() {
-  const rm = useReducedMotion();
-
   return (
     <section id="how-it-works" className="section relative overflow-hidden">
       <div className="sep" />
@@ -66,13 +63,12 @@ export default function HowItWorks() {
             How it works
           </motion.p>
           <h2 className="font-display font-bold text-3xl sm:text-4xl lg:text-[2.9rem] text-snow leading-[1.1] mb-5">
-            From brief to delivered,
+            Order, pay, chat.
             <br />
-            <span className="text-gradient">in three simple steps</span>
+            <span className="text-gradient">We build your site.</span>
           </h2>
           <p className="text-slate text-base leading-[1.8]">
-            No agency overhead, no ambiguity. Direct collaboration with expert developers —
-            protected every step of the way.
+            No marketplace, no choosing developers. You order, pay with Razorpay, chat with us — we build and deliver.
           </p>
         </motion.div>
 
@@ -142,7 +138,7 @@ export default function HowItWorks() {
           transition={{ duration: 0.9, ease: EXPO, delay: 0.5 }}
         >
           <a href="#signup" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition-colors duration-500 group">
-            Start your project now
+            Place your order now
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-500" style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }} />
           </a>
         </motion.div>

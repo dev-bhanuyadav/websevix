@@ -2,26 +2,23 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Clock, ShieldCheck, Star, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageSquare, CreditCard, Wrench } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /* ─── Easing ─── */
 const EXPO   = [0.16, 1, 0.3, 1] as const;
 const SMOOTH = [0.25, 0.1, 0.25, 1] as const;
 
-/* ─── Static brand list ─── */
-const BRANDS = ["Stripe","Notion","Linear","Vercel","Figma","Framer","Loom","Raycast","Intercom","Slack"];
-
 /* ─── Hero words ─── */
-const LINE_1 = ["Where", "Great", "Web"];
-const LINE_2 = ["Projects", "Get", "Built."];
+const LINE_1 = ["Order", "Your", "Website."];
+const LINE_2 = ["We", "Build", "It."];
 
-/* ─── Mockup data ─── */
-const MILESTONES = [
-  { label: "UI Design",    pct: 100 },
-  { label: "Frontend Dev", pct: 100 },
-  { label: "Backend API",  pct: 65  },
-  { label: "Deployment",   pct: 0   },
+/* ─── Mockup: order progress ─── */
+const PHASES = [
+  { label: "Brief & Quote", pct: 100 },
+  { label: "Design",        pct: 100 },
+  { label: "Development",   pct: 70  },
+  { label: "Launch",        pct: 0   },
 ];
 
 export default function Hero() {
@@ -96,7 +93,7 @@ export default function Hero() {
               animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.3, 1] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
-            Professional Web Services Platform
+            Professional Web Development
           </span>
         </motion.div>
 
@@ -141,10 +138,9 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.0, ease: EXPO, delay: 1.7 }}
         >
-          Post your project, receive proposals from vetted developers, and ship faster —
-          all backed by{" "}
-          <span className="text-silver font-medium">milestone-based escrow</span>{" "}
-          so you only pay for results.
+          Place your order, pay securely with{" "}
+          <span className="text-silver font-medium">Razorpay</span>, chat with us on live chat —
+          we build your website and deliver. Simple.
         </motion.p>
 
         {/* CTAs */}
@@ -155,7 +151,7 @@ export default function Hero() {
           transition={{ duration: 1.0, ease: EXPO, delay: 1.9 }}
         >
           <Link href="#signup" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
-            Post a Project <ArrowRight className="w-4 h-4" />
+            Place an Order <ArrowRight className="w-4 h-4" />
           </Link>
           <Link href="#how-it-works" className="btn-ghost inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
             See How It Works
@@ -170,9 +166,9 @@ export default function Hero() {
           transition={{ duration: 1.0, ease: EXPO, delay: 2.1 }}
         >
           {[
-            { icon: ShieldCheck, text: "Escrow-protected" },
-            { icon: CheckCircle2, text: "Vetted developers" },
-            { icon: Clock,        text: "Proposals in 24h" },
+            { icon: CreditCard, text: "Pay with Razorpay" },
+            { icon: MessageSquare, text: "Live chat support" },
+            { icon: Wrench, text: "We build for you" },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-1.5 text-sm text-slate">
               <Icon className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
@@ -207,7 +203,7 @@ export default function Hero() {
                 </div>
                 <div className="flex-1 flex justify-center">
                   <div className="px-4 py-1.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-xs text-slate">
-                    app.websevix.com/dashboard
+                    websevix.com
                   </div>
                 </div>
               </div>
@@ -228,18 +224,18 @@ export default function Hero() {
                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                           In Progress
                         </motion.span>
-                        <h3 className="font-display font-semibold text-snow text-sm">SaaS Dashboard Redesign</h3>
-                        <p className="text-[11px] text-slate mt-0.5">React + TypeScript + Tailwind</p>
+                        <h3 className="font-display font-semibold text-snow text-sm">Business Website — Order #1024</h3>
+                        <p className="text-[11px] text-slate mt-0.5">Landing + 5 pages · Responsive</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] text-slate mb-0.5">Budget</p>
-                        <p className="font-display font-bold text-snow text-lg">$3,200</p>
+                        <p className="text-[10px] text-slate mb-0.5">Paid via Razorpay</p>
+                        <p className="font-display font-bold text-snow text-lg">₹24,000</p>
                       </div>
                     </div>
 
-                    {/* Milestones */}
+                    {/* Phases */}
                     <div className="space-y-2.5">
-                      {MILESTONES.map((m, mi) => (
+                      {PHASES.map((m, mi) => (
                         <div key={m.label}>
                           <div className="flex items-center justify-between mb-1">
                             <span className={`text-[11px] ${m.pct === 100 ? "text-slate line-through" : "text-silver"}`}>
@@ -263,47 +259,42 @@ export default function Hero() {
                   </div>
                 </div>
 
-                {/* Right: developer + escrow */}
+                {/* Right: live chat + Razorpay */}
                 <div className="flex flex-col gap-3">
                   <div className="bg-white/[0.018] rounded-xl border border-white/[0.06] p-4">
-                    <p className="text-[10px] font-semibold text-slate uppercase tracking-[0.14em] mb-3">Top Match</p>
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <motion.div
-                        className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-400 flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                        animate={rm ? {} : { rotate: [0, 2, -2, 0] }}
-                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        RK
-                      </motion.div>
-                      <div>
-                        <p className="text-xs font-semibold text-snow">Raj Kumar</p>
-                        <p className="text-[10px] text-slate">React Expert · 5y exp</p>
+                    <p className="text-[10px] font-semibold text-slate uppercase tracking-[0.14em] mb-3">Live Chat</p>
+                    <div className="space-y-2.5 mb-3">
+                      <div className="flex justify-end">
+                        <span className="text-[11px] text-snow bg-indigo-500/20 border border-indigo-500/25 rounded-lg px-2.5 py-1.5 max-w-[85%]">
+                          When will the design be ready?
+                        </span>
+                      </div>
+                      <div className="flex justify-start">
+                        <span className="text-[11px] text-snow bg-white/[0.06] border border-white/[0.08] rounded-lg px-2.5 py-1.5 max-w-[85%]">
+                          By Friday. We’ll share a preview link.
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-0.5 mb-2">
-                      {[1,2,3,4,5].map(s => <Star key={s} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
-                      <span className="text-[10px] text-slate ml-1">5.0</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.04]">
-                      <span className="text-[10px] text-slate">Proposal</span>
-                      <span className="text-xs font-bold text-snow">$2,800</span>
+                    <div className="pt-2 border-t border-white/[0.04] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      </div>
+                      <span className="text-[10px] text-slate">Websevix team · Online</span>
                     </div>
                   </div>
 
                   <div className="bg-emerald-500/5 rounded-xl border border-emerald-500/20 p-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      </div>
-                      <p className="text-[11px] font-semibold text-snow">Escrow Active</p>
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                      <p className="text-[11px] font-semibold text-snow">Razorpay</p>
                     </div>
-                    <p className="text-xs font-bold text-emerald-400">$1,200 <span className="font-normal text-slate text-[10px]">secured</span></p>
+                    <p className="text-xs font-bold text-emerald-400">Payment received</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Floating badge: milestone approved */}
+            {/* Floating badge: phase delivered */}
             <motion.div
               className="absolute -bottom-6 -right-3 sm:-right-10 card border border-white/[0.1] px-4 py-2.5 flex items-center gap-2.5"
               style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}
@@ -315,12 +306,12 @@ export default function Hero() {
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-snow">Milestone approved</p>
-                <p className="text-[10px] text-slate">Payment released</p>
+                <p className="text-[11px] font-semibold text-snow">Phase delivered</p>
+                <p className="text-[10px] text-slate">Design approved</p>
               </div>
             </motion.div>
 
-            {/* Floating badge: new proposal */}
+            {/* Floating badge: live chat */}
             <motion.div
               className="absolute -top-6 -left-3 sm:-left-10 card border border-white/[0.1] px-4 py-2.5 flex items-center gap-2.5"
               style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}
@@ -333,43 +324,17 @@ export default function Hero() {
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Zap className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
+                <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
               </motion.div>
               <div>
-                <p className="text-[11px] font-semibold text-snow">New proposal!</p>
-                <p className="text-[10px] text-slate">5 min ago</p>
+                <p className="text-[11px] font-semibold text-snow">Live chat</p>
+                <p className="text-[10px] text-slate">We’re here to help</p>
               </div>
             </motion.div>
           </motion.div>
         </motion.div>
       </div>
 
-      {/* ══ Brand marquee ══ */}
-      <motion.div
-        className="relative z-10 w-full mt-28"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.2, ease: EXPO, delay: 2.5 }}
-      >
-        <div className="sep mb-9" />
-        <p className="text-center text-[11px] font-semibold text-dim uppercase tracking-[0.28em] mb-8">
-          Trusted by teams from
-        </p>
-        <div className="marquee-wrap">
-          <div className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
-            style={{ background: "linear-gradient(to right, #050510, transparent)" }} />
-          <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
-            style={{ background: "linear-gradient(to left, #050510, transparent)" }} />
-          <div className="marquee-track items-center gap-14">
-            {[...BRANDS, ...BRANDS].map((b, i) => (
-              <span key={`${b}-${i}`} className="text-[13px] font-semibold text-dim hover:text-slate transition-colors duration-700 cursor-default whitespace-nowrap tracking-wide select-none">
-                {b}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="sep mt-9" />
-      </motion.div>
     </section>
   );
 }

@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight } from "lucide-react";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
-
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 const testimonials = [
@@ -14,8 +12,8 @@ const testimonials = [
     initials: "SC",
     grad: "from-indigo-500 to-violet-400",
     stars: 5,
-    quote: "We shipped our MVP in 6 weeks. The milestone system meant we always knew where our money was going. Complete peace of mind — couldn't have done it without Websevix.",
-    tag: "Shipped in 6 weeks",
+    quote: "I placed an order, paid via Razorpay, and chatted with the team throughout. They built our landing page and delivered on time. Simple and professional.",
+    tag: "Landing page",
   },
   {
     name: "Marcus Johnson",
@@ -23,8 +21,8 @@ const testimonials = [
     initials: "MJ",
     grad: "from-violet-500 to-cyan-400",
     stars: 5,
-    quote: "I'd tried other platforms before. This one is different — developers actually read your brief, the escrow works exactly as promised, and support is genuinely responsive.",
-    tag: "Full-stack Shopify storefront",
+    quote: "No hassle of finding a developer. I told them what I needed, paid with Razorpay, and used live chat for updates. Got my e-commerce site delivered as promised.",
+    tag: "E-commerce site",
   },
   {
     name: "Priya Sharma",
@@ -32,22 +30,20 @@ const testimonials = [
     initials: "PS",
     grad: "from-cyan-500 to-indigo-400",
     stars: 5,
-    quote: "Our dev team uses Websevix for every outsourced feature sprint. Real-time chat, file sharing, and milestone tracking keeps everything in one place. Zero friction.",
-    tag: "Ongoing SaaS development",
+    quote: "We order all our client websites from Websevix. Razorpay for payments, live chat for coordination — and they build everything. Smooth experience every time.",
+    tag: "Multiple projects",
   },
 ];
 
 export default function Testimonials() {
   const [idx, setIdx] = useState(0);
-  const rm = useReducedMotion();
   const next = useCallback(() => setIdx((i) => (i + 1) % testimonials.length), []);
   const prev = () => setIdx((i) => (i - 1 + testimonials.length) % testimonials.length);
 
   useEffect(() => {
-    if (rm) return;
     const t = setInterval(next, 6500);
     return () => clearInterval(t);
-  }, [rm, next]);
+  }, [next]);
 
   return (
     <section id="testimonials" className="section relative overflow-hidden">
