@@ -8,91 +8,93 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        base: "#050510",
+        base:    "#050510",
         surface: "#0A0A1E",
-        elevated: "#0F0F28",
-        card: "#13132A",
-        "border-dim": "rgba(255,255,255,0.06)",
-        "border-soft": "rgba(255,255,255,0.12)",
-        indigo: {
-          400: "#818CF8",
-          500: "#6366F1",
-          600: "#4F46E5",
-        },
+        card:    "#0E0E24",
+        dim:     "#334155",
+        snow:    "#F8FAFC",
+        silver:  "#CBD5E1",
+        slate:   "#64748B",
+        indigo: { 300: "#A5B4FC", 400: "#818CF8", 500: "#6366F1", 600: "#4F46E5" },
         violet: { 400: "#A78BFA", 500: "#8B5CF6" },
-        cyan: { 400: "#22D3EE", 500: "#06B6D4" },
-        rose: { 500: "#F43F5E" },
-        snow: "#F8FAFC",
-        silver: "#CBD5E1",
-        slate: "#64748B",
-        dim: "#334155",
-        emerald: { 400: "#34D399", 500: "#10B981" },
-        amber: { 400: "#FBBF24" },
+        cyan:   { 400: "#22D3EE", 500: "#06B6D4" },
+        emerald:{ 400: "#34D399", 500: "#10B981" },
+        amber:  { 400: "#FBBF24" },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
-        display: ["var(--font-syne)", "Syne", "sans-serif"],
+        // Body: DM Sans — clean, modern
+        sans:    ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        // Display: Space Grotesk — geometric, premium SaaS
+        display: ["var(--font-space-grotesk)", "Space Grotesk", "sans-serif"],
       },
       backgroundImage: {
         "radial-glow":
-          "radial-gradient(ellipse 80% 50% at 50% -5%, rgba(99,102,241,0.22), transparent 65%)",
-        "grid-lines":
-          "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-        "card-gradient":
-          "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 60%)",
-        "shine-gradient":
-          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)",
+          "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(99,102,241,0.22), transparent 68%)",
+        "card-shine":
+          "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 55%)",
       },
       animation: {
-        float: "float 5s ease-in-out infinite",
-        "marquee-x": "marqueeX 28s linear infinite",
-        shimmer: "shimmer 2s linear infinite",
-        "fade-up": "fadeUp 0.55s ease forwards",
-        "pulse-dot": "pulseDot 2s ease-in-out infinite",
-        "border-spin": "borderSpin 4s linear infinite",
-        aurora: "aurora 12s ease-in-out infinite",
-        "scale-in": "scaleIn 0.4s var(--ease-spring) forwards",
+        // Long, cinematic
+        "float-slow":    "floatSlow 7s ease-in-out infinite",
+        "float-medium":  "floatMedium 5s ease-in-out infinite",
+        "marquee-slow":  "marqueeX 32s linear infinite",
+        "bg-shift":      "bgShift 20s ease infinite",
+        "gradient-text": "gradientText 8s ease infinite",
+        "pulse-slow":    "pulseSlow 3s ease-in-out infinite",
+        "line-draw":     "lineDraw 1.8s ease forwards",
+        "aurora-slow":   "auroraSlow 18s ease-in-out infinite",
+        "shimmer-slow":  "shimmerSlow 3s linear infinite",
       },
       keyframes: {
-        float: {
+        floatSlow: {
           "0%,100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-16px)" },
+          "50%":     { transform: "translateY(-18px)" },
+        },
+        floatMedium: {
+          "0%,100%": { transform: "translateY(0px) rotate(0deg)" },
+          "50%":     { transform: "translateY(-12px) rotate(1deg)" },
         },
         marqueeX: {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-50%)" },
+          from: { transform: "translateX(0)" },
+          to:   { transform: "translateX(-50%)" },
         },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
+        bgShift: {
+          "0%,100%": { backgroundPosition: "0% 50%" },
+          "50%":     { backgroundPosition: "100% 50%" },
+        },
+        gradientText: {
+          "0%,100%": { backgroundPosition: "0% 50%" },
+          "50%":     { backgroundPosition: "100% 50%" },
+        },
+        pulseSlow: {
+          "0%,100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%":     { opacity: "1",   transform: "scale(1.15)" },
+        },
+        lineDraw: {
+          from: { transform: "scaleX(0)", opacity: "0" },
+          to:   { transform: "scaleX(1)", opacity: "1" },
+        },
+        auroraSlow: {
+          "0%,100%": { transform: "translate(0,0) scale(1) rotate(0deg)" },
+          "25%":     { transform: "translate(60px,-45px) scale(1.15) rotate(5deg)" },
+          "50%":     { transform: "translate(-40px,30px) scale(0.9) rotate(-3deg)" },
+          "75%":     { transform: "translate(20px,-20px) scale(1.05) rotate(2deg)" },
+        },
+        shimmerSlow: {
+          "0%":   { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
-        },
-        fadeUp: {
-          from: { opacity: "0", transform: "translateY(28px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-        pulseDot: {
-          "0%,100%": { opacity: "0.5", transform: "scale(1)" },
-          "50%": { opacity: "1", transform: "scale(1.3)" },
-        },
-        borderSpin: {
-          "0%": { "--angle": "0deg" } as Record<string, string>,
-          "100%": { "--angle": "360deg" } as Record<string, string>,
-        },
-        aurora: {
-          "0%,100%": { transform: "translate(0,0) scale(1)" },
-          "33%": { transform: "translate(50px,-40px) scale(1.12)" },
-          "66%": { transform: "translate(-35px,30px) scale(0.9)" },
-        },
-        scaleIn: {
-          from: { opacity: "0", transform: "scale(0.9)" },
-          to: { opacity: "1", transform: "scale(1)" },
         },
       },
       boxShadow: {
-        "glow-indigo": "0 0 40px rgba(99,102,241,0.25)",
-        "glow-violet": "0 0 40px rgba(139,92,246,0.25)",
-        "glow-sm": "0 0 20px rgba(99,102,241,0.2)",
-        float: "0 20px 60px rgba(0,0,0,0.5)",
+        "glow-indigo": "0 0 60px rgba(99,102,241,0.22), 0 0 120px rgba(99,102,241,0.1)",
+        "glow-sm":     "0 0 20px rgba(99,102,241,0.18)",
+        "card-float":  "0 24px 80px rgba(0,0,0,0.55), 0 4px 20px rgba(0,0,0,0.3)",
+      },
+      transitionTimingFunction: {
+        // Expo-out: starts fast, slows dramatically — cinematic premium feel
+        "expo-out": "cubic-bezier(0.16, 1, 0.3, 1)",
+        // Apple-style spring-like
+        "ios":      "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       },
     },
   },

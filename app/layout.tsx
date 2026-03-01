@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Syne } from "next/font/google";
+import { DM_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+// Body font — DM Sans: clean, modern humanist
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-dm-sans",
   display: "swap",
 });
 
-const syne = Syne({
+// Display font — Space Grotesk: geometric, premium SaaS feel
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-syne",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
   display: "swap",
 });
 
@@ -18,7 +22,7 @@ export const metadata: Metadata = {
   title: "Websevix — Where Great Web Projects Get Built",
   description:
     "Post your project, receive proposals from vetted developers, and ship faster — all backed by milestone-based escrow.",
-  keywords: ["web development", "hire developers", "escrow payments", "milestone projects", "freelance web platform"],
+  keywords: ["web development", "hire developers", "escrow payments", "milestone projects"],
   authors: [{ name: "Websevix" }],
   openGraph: {
     title: "Websevix — Where Great Web Projects Get Built",
@@ -33,7 +37,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${syne.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans bg-base text-snow antialiased">
         <div className="noise-overlay" aria-hidden />
         {children}

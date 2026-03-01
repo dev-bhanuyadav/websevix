@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-const ease = [0.25, 0.1, 0.25, 1] as const;
+const EXPO = [0.16, 1, 0.3, 1] as const;
 
 export default function CTASection() {
   const rm = useReducedMotion();
@@ -14,21 +14,21 @@ export default function CTASection() {
     <section className="section relative overflow-hidden">
       <div className="sep" />
 
-      {/* Aurora background */}
+      {/* Aurora */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {!rm && (
           <>
             <motion.div
-              className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px]"
-              style={{ background: "radial-gradient(circle, rgba(99,102,241,0.3), transparent 70%)" }}
-              animate={{ x: [0, 40, -30, 0], y: [0, -40, 30, 0], scale: [1, 1.1, 0.92, 1] }}
-              transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-[-10%] left-[20%] w-[700px] h-[700px] rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(99,102,241,0.28), transparent 65%)", filter: "blur(80px)" }}
+              animate={{ x:[0,50,-35,0], y:[0,-45,30,0], scale:[1,1.12,0.9,1] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div
-              className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full blur-[80px]"
-              style={{ background: "radial-gradient(circle, rgba(139,92,246,0.2), transparent 70%)" }}
-              animate={{ x: [0, -30, 20, 0], y: [0, 30, -20, 0], scale: [1, 0.9, 1.1, 1] }}
-              transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute bottom-[-5%] right-[15%] w-[500px] h-[500px] rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(139,92,246,0.18), transparent 65%)", filter: "blur(60px)" }}
+              animate={{ x:[0,-30,20,0], y:[0,30,-20,0], scale:[1,0.9,1.1,1] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
             />
           </>
         )}
@@ -40,74 +40,76 @@ export default function CTASection() {
 
       <div className="relative max-w-3xl mx-auto px-5 sm:px-8 pt-16 text-center">
         <motion.div
-          className="card border border-indigo-500/15 p-10 sm:p-16 relative overflow-hidden"
-          initial={{ opacity: 0, y: 32 }}
+          className="card p-12 sm:p-16 relative overflow-hidden"
+          style={{
+            border: "1px solid rgba(99,102,241,0.18)",
+            boxShadow: "0 0 0 1px rgba(99,102,241,0.08), 0 30px 100px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
+          }}
+          initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 1.1, ease: EXPO }}
         >
           {/* Top glow line */}
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/60 to-transparent" />
-          {/* Corner decoration */}
-          <div className="absolute top-0 left-0 w-32 h-32 rounded-br-full"
-            style={{ background: "radial-gradient(circle at top left, rgba(99,102,241,0.08), transparent 70%)" }} />
-          <div className="absolute bottom-0 right-0 w-32 h-32 rounded-tl-full"
-            style={{ background: "radial-gradient(circle at bottom right, rgba(139,92,246,0.08), transparent 70%)" }} />
+          {/* Faint corner radials */}
+          <div className="absolute top-0 left-0 w-40 h-40" style={{ background: "radial-gradient(circle at top left, rgba(99,102,241,0.07), transparent 70%)" }} />
+          <div className="absolute bottom-0 right-0 w-40 h-40" style={{ background: "radial-gradient(circle at bottom right, rgba(139,92,246,0.07), transparent 70%)" }} />
 
           <motion.p
-            className="text-xs font-semibold text-indigo-400 uppercase tracking-[0.2em] mb-5"
+            className="text-xs font-semibold text-indigo-400 uppercase tracking-[0.22em] mb-5"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
+            transition={{ duration: 0.9, ease: EXPO, delay: 0.2 }}
           >
             Get Started Today
           </motion.p>
 
           <motion.h2
-            className="font-display font-bold text-3xl sm:text-4xl lg:text-5xl text-snow leading-tight mb-5"
-            initial={{ opacity: 0, y: 16 }}
+            className="font-display font-bold text-3xl sm:text-4xl lg:text-5xl text-snow leading-[1.08] mb-6"
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.15, duration: 0.6, ease }}
+            transition={{ duration: 1.0, ease: EXPO, delay: 0.3 }}
           >
-            Ready to build<br />
-            <span className="text-gradient-animate">something great?</span>
+            Ready to build{" "}
+            <span className="text-gradient-live">something great?</span>
           </motion.h2>
 
           <motion.p
-            className="text-slate text-base sm:text-lg leading-relaxed max-w-lg mx-auto mb-9"
-            initial={{ opacity: 0, y: 14 }}
+            className="text-slate text-base sm:text-lg leading-[1.85] max-w-lg mx-auto mb-10 font-light"
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.22, duration: 0.55, ease }}
+            transition={{ duration: 1.0, ease: EXPO, delay: 0.4 }}
           >
-            Post your project for free and receive detailed proposals from vetted developers within 24 hours.
+            Post your project for free. Receive detailed proposals from vetted developers within 24 hours. No commitment required.
           </motion.p>
 
           <motion.div
             className="flex flex-col sm:flex-row items-center justify-center gap-3"
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.5, ease }}
+            transition={{ duration: 1.0, ease: EXPO, delay: 0.5 }}
           >
-            <Link href="#signup" className="btn-primary inline-flex items-center gap-2 text-base px-8 py-4 w-full sm:w-auto justify-center">
+            <Link href="#signup" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
               Post a Project Free <ArrowRight className="w-4.5 h-4.5" />
             </Link>
-            <Link href="#login" className="btn-ghost inline-flex items-center gap-2 text-base px-8 py-4 w-full sm:w-auto justify-center">
+            <Link href="#how-it-works" className="btn-ghost inline-flex items-center gap-2 text-base px-9 py-4 w-full sm:w-auto justify-center">
               Browse Developers
             </Link>
           </motion.div>
 
           <motion.p
-            className="mt-5 text-xs text-dim"
+            className="mt-6 text-xs text-dim"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
+            transition={{ duration: 0.9, ease: EXPO, delay: 0.7 }}
           >
-            No credit card · Free to post · No commitment
+            No credit card · Free to post · Cancel anytime
           </motion.p>
         </motion.div>
       </div>

@@ -1,27 +1,25 @@
-import Navbar from "@/components/sections/Navbar";
-import Hero from "@/components/sections/Hero";
-import HowItWorks from "@/components/sections/HowItWorks";
-import Categories from "@/components/sections/Categories";
+import Navbar      from "@/components/sections/Navbar";
+import Hero        from "@/components/sections/Hero";
+import HowItWorks  from "@/components/sections/HowItWorks";
+import Categories  from "@/components/sections/Categories";
 import WhyChooseUs from "@/components/sections/WhyChooseUs";
-import Stats from "@/components/sections/Stats";
+import Stats       from "@/components/sections/Stats";
 import Testimonials from "@/components/sections/Testimonials";
-import CTASection from "@/components/sections/CTASection";
-import Footer from "@/components/sections/Footer";
+import CTASection  from "@/components/sections/CTASection";
+import Footer      from "@/components/sections/Footer";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <>
+    <main className="min-h-screen bg-base">
       <Navbar />
-      <main>
-        <Hero />
-        <HowItWorks />
-        <Categories />
-        <WhyChooseUs />
-        <Stats />
-        <Testimonials />
-        <CTASection />
-      </main>
+      <Hero />
+      <HowItWorks />
+      <Categories />
+      <WhyChooseUs />
+      <Stats />
+      <Testimonials />
+      <CTASection />
       <Footer />
-    </>
+    </main>
   );
 }
