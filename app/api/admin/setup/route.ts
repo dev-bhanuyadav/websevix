@@ -19,19 +19,35 @@ import { jsonResponse } from "@/lib/api";
 async function createAdmin() {
   await connectDB();
 
-  const existing = await User.findOne({ role: "admin" });
-  if (existing) {
-    return { alreadyExists: true, email: existing.email };
+  // If any admin already exists and is properly set up, skip
+  const existingAdmin = await User.findOne({ role: "admin" });
+  if (existingAdmin) {
+    return { alreadyExists: true, email: existingAdmin.email };
   }
 
-  const email     = process.env.ADMIN_EMAIL     ?? "admin@websevix.com";
-  const password  = process.env.ADMIN_PASSWORD  ?? "Admin@Websevix2024!";
+  const email     = (process.env.ADMIN_EMAIL     ?? "admin@websevix.com").toLowerCase().trim();
+  const password  = process.env.ADMIN_PASSWORD   ?? "Admin@Websevix2024!";
   const firstName = process.env.ADMIN_FIRST_NAME ?? "Super";
   const lastName  = process.env.ADMIN_LAST_NAME  ?? "Admin";
+  const hashed    = await bcrypt.hash(password, 12);
 
-  const hashed = await bcrypt.hash(password, 12);
+  // If user with this email already exists (wrong role), upgrade them to admin
+  const byEmail = await User.findOne({ email });
+  if (byEmail) {
+    byEmail.role            = "admin";
+    byEmail.password        = hashed;
+    byEmail.firstName       = firstName;
+    byEmail.lastName        = lastName;
+    byEmail.isVerified      = true;
+    byEmail.isActive        = true;
+    byEmail.profileComplete = true;
+    await byEmail.save();
+    return { created: true, upgraded: true, email, password };
+  }
+
+  // Fresh create
   await User.create({
-    email:           email.toLowerCase(),
+    email,
     password:        hashed,
     firstName,
     lastName,
@@ -59,7 +75,7 @@ export async function GET(request: NextRequest) {
       return jsonResponse({ message: `Admin already exists: ${result.email}` });
     }
     return jsonResponse({
-      message:  "Admin created successfully!",
+      message:  result.upgraded ? "Existing user upgraded to admin!" : "Admin created successfully!",
       email:    result.email,
       password: result.password,
       nextStep: "Visit /admin/login and sign in.",
