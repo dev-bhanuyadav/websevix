@@ -69,13 +69,6 @@ function formatFileSize(bytes?: number): string {
 
 // ─── Payment Request Card ─────────────────────────────────────────
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Razorpay: any;
-  }
-}
-
 function PaymentCard({
   msg,
   accessToken,
