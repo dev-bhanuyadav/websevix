@@ -132,7 +132,7 @@ function PaymentCard({
         order_id:    rzpOrder.id,
         theme:       { color: "#10B981" },
         modal:       { ondismiss: () => setPaying(false) },
-        handler: async (res: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+        handler: async (res: RazorpaySuccessResponse) => {
           setPaying(true);
           await fetch(`/api/payments/requests/${msg.paymentRequestId}/verify`, {
             method: "POST",

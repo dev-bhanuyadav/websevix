@@ -170,30 +170,30 @@ function ClientServicesInner() {
         return;
       }
 
-      // ── Razorpay checkout — all payment methods (UPI, Card, NB, Wallet) ───
+      // ── Razorpay Subscription checkout ────────────────────────────────────
+      // subscription_id enables UPI, Card, Net Banking for recurring payments.
+      // ₹2 is charged now (addon verification); full monthly amount charged next cycle.
       const rzp = new window.Razorpay({
-        key:         d.keyId,
-        amount:      d.amount,
-        currency:    d.currency,
-        order_id:    d.orderId,
-        name:        "Websevix",
-        description: "Autopay Setup — ₹2 one-time verification",
-        prefill:     d.prefill,
-        theme:       { color: "#6366F1" },
+        key:             d.keyId,
+        subscription_id: d.subscriptionId,
+        name:            "Websevix",
+        description:     `AutoPay Setup — ₹2 now · ₹${(d.monthlyTotal ?? 0).toLocaleString("en-IN")}/month from next cycle`,
+        prefill:         d.prefill,
+        theme:           { color: "#6366F1" },
         handler: async (response: RazorpaySuccessResponse) => {
           try {
             const vr = await fetch("/api/mandate/verify", {
               method:  "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
               body:    JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
+                razorpay_payment_id:       response.razorpay_payment_id,
+                razorpay_subscription_id:  response.razorpay_subscription_id,
+                razorpay_signature:        response.razorpay_signature,
               }),
             });
             const vd = await vr.json();
             if (vd.success) {
-              setAutopayMsg({ type: "success", text: "Autopay activated! ₹2 verified. Monthly billing up to ₹15,000." });
+              setAutopayMsg({ type: "success", text: `Autopay activated! ₹2 verified. Monthly auto-billing of ₹${(d.monthlyTotal ?? 0).toLocaleString("en-IN")} starts next cycle.` });
               load();
             } else {
               setAutopayMsg({ type: "error", text: vd.error ?? "Verification failed. Please contact support." });

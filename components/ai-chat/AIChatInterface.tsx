@@ -190,7 +190,7 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
         handler: async (response: RazorpaySuccessResponse) => {
           setIsPlacing(true);
           await finishOrderCreation({
-            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_order_id:   response.razorpay_order_id ?? "",
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_signature:  response.razorpay_signature,
             _mock:               false,

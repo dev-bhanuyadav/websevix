@@ -1,16 +1,17 @@
 interface RazorpayOptions {
   key: string;
-  amount: number;
-  currency: string;
   name: string;
   description?: string;
   image?: string;
-  order_id?: string;
-  // Recurring / AutoPay fields
-  customer_id?: string;
-  recurring?: "1" | "0";
-  callback_url?: string;          // Redirect URL for recurring flow
+
   // Regular one-time payment
+  order_id?: string;
+  amount?: number;
+  currency?: string;
+
+  // Subscription / AutoPay (use instead of order_id)
+  subscription_id?: string;
+
   handler?: (response: RazorpaySuccessResponse) => void;
   prefill?: { name?: string; email?: string; contact?: string };
   notes?: Record<string, string>;
@@ -19,9 +20,10 @@ interface RazorpayOptions {
 }
 
 interface RazorpaySuccessResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
+  razorpay_payment_id:      string;
+  razorpay_order_id?:       string;       // regular payment
+  razorpay_subscription_id?: string;      // subscription payment
+  razorpay_signature:       string;
 }
 
 interface RazorpayClass {

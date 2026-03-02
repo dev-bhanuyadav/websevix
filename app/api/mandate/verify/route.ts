@@ -12,44 +12,52 @@ export async function POST(request: NextRequest) {
     const payload = await verifyAccessToken(auth);
 
     const body = await request.json() as {
-      razorpay_order_id:   string;
-      razorpay_payment_id: string;
-      razorpay_signature:  string;
-      paymentMethod?:      string;
-      maskedAccount?:      string;
+      razorpay_payment_id:       string;
+      razorpay_subscription_id?: string;   // subscription flow
+      razorpay_order_id?:        string;   // one-time fallback
+      razorpay_signature:        string;
     };
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
-
-    // Verify Razorpay signature
+    const { razorpay_payment_id, razorpay_subscription_id, razorpay_order_id, razorpay_signature } = body;
     const keySecret = process.env.RAZORPAY_KEY_SECRET ?? "";
-    const generated = crypto
-      .createHmac("sha256", keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
 
-    if (keySecret && generated !== razorpay_signature) {
-      return jsonResponse({ error: "Payment verification failed" }, 400);
+    // Verify signature — formula differs for subscriptions vs regular orders
+    if (keySecret) {
+      const sigInput = razorpay_subscription_id
+        ? `${razorpay_payment_id}|${razorpay_subscription_id}`
+        : `${razorpay_order_id}|${razorpay_payment_id}`;
+
+      const generated = crypto
+        .createHmac("sha256", keySecret)
+        .update(sigInput)
+        .digest("hex");
+
+      if (generated !== razorpay_signature) {
+        return jsonResponse({ error: "Payment verification failed" }, 400);
+      }
     }
 
     await connectDB();
 
-    // Upsert mandate — if already active, return it
-    const existing = await Mandate.findOne({
-      clientId: payload.userId,
-      status:   { $in: ["active", "authenticated"] },
-    });
-    if (existing) return jsonResponse({ success: true, mandate: existing });
+    // Update existing mandate record or create new one
+    const existing = await Mandate.findOne({ clientId: payload.userId });
+
+    if (existing) {
+      existing.status            = "authenticated";
+      existing.razorpayMandateId = razorpay_payment_id;
+      existing.subscriptionId    = razorpay_subscription_id ?? existing.subscriptionId ?? razorpay_order_id;
+      existing.activatedAt       = new Date();
+      await existing.save();
+      return jsonResponse({ success: true, mandate: existing });
+    }
 
     const mandate = await Mandate.create({
       clientId:          payload.userId,
       razorpayMandateId: razorpay_payment_id,
-      subscriptionId:    razorpay_order_id,
+      subscriptionId:    razorpay_subscription_id ?? razorpay_order_id ?? "",
       maxAmount:         15000,
       status:            "authenticated",
       mandateNumber:     1,
-      paymentMethod:     body.paymentMethod ?? "Card/UPI",
-      maskedAccount:     body.maskedAccount ?? "",
       activatedAt:       new Date(),
     });
 
