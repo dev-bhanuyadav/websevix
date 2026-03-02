@@ -62,8 +62,12 @@ export default function AdminSidebar({
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
   const handleLogout = async () => {
-    await logout();
-    router.push("/");
+    try {
+      await fetch("/api/admin/auth/logout", { method: "POST", credentials: "include" });
+    } finally {
+      await logout();
+      router.push("/admin/login");
+    }
   };
 
   const renderBody = (isMobile = false) => {

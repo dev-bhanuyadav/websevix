@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Sign tokens — if this throws (missing env vars), we'll cleanup
     const uid = createdUserId!;
     const accessToken  = await signAccessToken({ userId: uid, email: user.email, role: user.role });
-    const refreshToken = await signRefreshToken({ userId: uid });
+    const refreshToken = await signRefreshToken({ userId: uid, role: user.role });
 
     await RefreshToken.create({
       userId:    user._id,

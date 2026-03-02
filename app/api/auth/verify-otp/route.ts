@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
     });
-    const refreshToken = await signRefreshToken({ userId: user._id.toString() });
+    const refreshToken = await signRefreshToken({ userId: user._id.toString(), role: user.role });
     await RefreshToken.create({
       userId: user._id,
       token: refreshToken,

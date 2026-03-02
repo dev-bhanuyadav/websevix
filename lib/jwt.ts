@@ -20,8 +20,9 @@ export interface AccessPayload {
 
 export interface RefreshPayload {
   userId: string;
-  type: "refresh";
-  jti?: string;
+  role:   string;
+  type:   "refresh";
+  jti?:   string;
 }
 
 const ACCESS_EXP = "15m";
