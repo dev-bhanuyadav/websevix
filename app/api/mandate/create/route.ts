@@ -3,9 +3,15 @@ import { connectDB } from "@/lib/mongodb";
 import { jsonResponse } from "@/lib/api";
 import { verifyAccessToken } from "@/lib/jwt";
 import { Mandate } from "@/models/Mandate";
-import { createPlan, createSubscription } from "@/lib/razorpayMandate";
-import { calculateMRR } from "@/lib/billingEngine";
-import mongoose from "mongoose";
+import { User } from "@/models/User";
+
+async function getRazorpay() {
+  const keyId     = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) return null;
+  const Razorpay = (await import("razorpay")).default;
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,35 +20,61 @@ export async function POST(request: NextRequest) {
     const payload = await verifyAccessToken(auth);
     await connectDB();
 
-    // Determine total monthly amount
-    const { total } = await calculateMRR();
-    const mandatesNeeded = Math.max(1, Math.ceil(total / 15000));
-    const existingCount  = await Mandate.countDocuments({
-      clientId: new mongoose.Types.ObjectId(payload.userId),
-      status:   { $in: ["active", "authenticated", "created"] },
+    // Already has active mandate?
+    const existing = await Mandate.findOne({
+      clientId: payload.userId,
+      status:   { $in: ["active", "authenticated"] },
     });
-    const nextMandateNum = existingCount + 1;
-    if (nextMandateNum > mandatesNeeded && existingCount > 0) {
-      return jsonResponse({ message: "Sufficient mandates already exist" });
+    if (existing) return jsonResponse({ alreadyActive: true, mandate: existing });
+
+    const rzp = await getRazorpay();
+
+    // ── Mock mode (no Razorpay keys) ────────────────────────────────────────
+    if (!rzp) {
+      const mandate = await Mandate.create({
+        clientId:          payload.userId,
+        razorpayMandateId: `mock_${Date.now()}`,
+        subscriptionId:    `mock_sub_${Date.now()}`,
+        maxAmount:         15000,
+        status:            "authenticated",
+        mandateNumber:     1,
+        paymentMethod:     "UPI (Mock)",
+        maskedAccount:     "mock@upi",
+        activatedAt:       new Date(),
+      });
+      return jsonResponse({ success: true, mock: true, mandate });
     }
 
-    const amount = Math.min(total - (existingCount * 15000), 15000);
-    const plan   = await createPlan(Math.max(amount, 1), `Websevix Services — Mandate ${nextMandateNum}`);
-    const sub    = await createSubscription(plan.id, payload.userId);
+    // ── Create ₹2 order for autopay verification ─────────────────────────
+    const user  = await User.findById(payload.userId).lean() as {
+      firstName?: string; lastName?: string; email?: string; phone?: string;
+    } | null;
 
-    const mandate = await Mandate.create({
-      clientId:       new mongoose.Types.ObjectId(payload.userId),
-      subscriptionId: sub.id,
-      planId:         plan.id,
-      maxAmount:      15000,
-      status:         "created",
-      mandateNumber:  nextMandateNum,
-      shortUrl:       (sub as Record<string, unknown>).short_url ?? null,
+    const order = await rzp.orders.create({
+      amount:   200,        // ₹2 in paise — verification charge
+      currency: "INR",
+      receipt:  `mandate_${payload.userId}_${Date.now()}`,
+      notes: {
+        purpose:  "Websevix Autopay Setup",
+        clientId: payload.userId,
+        type:     "mandate_setup",
+      },
     });
 
-    return jsonResponse({ success: true, mandate, setupUrl: (sub as Record<string, unknown>).short_url });
+    return jsonResponse({
+      success:  true,
+      orderId:  order.id,
+      amount:   200,
+      currency: "INR",
+      keyId:    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      prefill: {
+        name:    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
+        email:   user?.email ?? "",
+        contact: user?.phone ?? "",
+      },
+    });
   } catch (e) {
     console.error("[mandate/create]", e);
-    return jsonResponse({ error: "Failed to create mandate" }, 500);
+    return jsonResponse({ error: "Failed to initiate autopay setup" }, 500);
   }
 }
