@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, SkipForward, Lock, CheckCircle, Loader2, X, CreditCard } from "lucide-react";
+import { MandatoryServicesModal } from "@/components/services/MandatoryServicesModal";
 import { AIMessage } from "./AIMessage";
 import { UserMessage } from "./UserMessage";
 import { TypingIndicator } from "./TypingIndicator";
@@ -10,9 +11,8 @@ import { OrderSummaryCard } from "./OrderSummaryCard";
 import { OPENING_MESSAGE, type AIResponse } from "@/lib/aiPrompt";
 import { useAuth } from "@/hooks/useAuth";
 
-// ─── TEST MODE: ₹1 — change to 500 before going live ───────────
-const PLACEMENT_FEE = 1;
-const PLACEMENT_FEE_DISPLAY = `₹${PLACEMENT_FEE === 1 ? "1 (test)" : "500"}`;
+const PLACEMENT_FEE = 500;
+const PLACEMENT_FEE_DISPLAY = `₹500`;
 
 interface ChatMsg {
   id:              string;
@@ -62,10 +62,12 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
   const [isTyping,      setIsTyping]      = useState(false);
   const [collectedData, setCollectedData] = useState<AIResponse["collectedData"]>({});
   const [isComplete,    setIsComplete]    = useState(false);
-  const [isPlacing,     setIsPlacing]     = useState(false);
-  const [payModal,      setPayModal]      = useState(false);
-  const [historyLock,   setHistoryLock]   = useState(false);
-  const [payError,      setPayError]      = useState("");
+  const [isPlacing,       setIsPlacing]       = useState(false);
+  const [payModal,        setPayModal]        = useState(false);
+  const [historyLock,     setHistoryLock]     = useState(false);
+  const [payError,        setPayError]        = useState("");
+  const [showSvcModal,    setShowSvcModal]     = useState(false);
+  const [placedOrderId,   setPlacedOrderId]   = useState<string | null>(null);
 
   // Preload Razorpay script
   useEffect(() => { loadRazorpayScript(); }, []);
@@ -228,7 +230,9 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
       });
 
       setPayModal(false);
-      onOrderPlaced?.(orderData.order.orderId ?? "");
+      // Show mandatory services modal before navigating
+      setPlacedOrderId(orderData.order._id ?? orderData.order.id ?? "");
+      setShowSvcModal(true);
     } catch (e) {
       setPayError(e instanceof Error ? e.message : "Order creation failed.");
     } finally {
@@ -353,6 +357,16 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
           isComplete={isComplete}
         />
       </div>
+
+      {/* ─── Mandatory Services Modal (post-payment) ─── */}
+      {showSvcModal && placedOrderId && (
+        <MandatoryServicesModal
+          orderId={placedOrderId}
+          accessToken={accessToken}
+          onClose={() => { setShowSvcModal(false); onOrderPlaced?.(placedOrderId); }}
+          onConfirmed={() => { setShowSvcModal(false); onOrderPlaced?.(placedOrderId); }}
+        />
+      )}
 
       {/* ─── Payment Modal ─── */}
       <AnimatePresence>

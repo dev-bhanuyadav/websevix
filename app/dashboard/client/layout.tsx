@@ -8,11 +8,12 @@ import { TopBar } from "@/components/dashboard/TopBar";
 import { usePathname } from "next/navigation";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard/client":           "Overview",
-  "/dashboard/client/new-order": "New Order",
-  "/dashboard/client/orders":    "My Orders",
-  "/dashboard/client/messages":  "Messages",
-  "/dashboard/client/profile":   "Profile",
+  "/dashboard/client":            "Overview",
+  "/dashboard/client/new-order":  "New Order",
+  "/dashboard/client/orders":     "My Orders",
+  "/dashboard/client/messages":   "Messages",
+  "/dashboard/client/services":   "My Services",
+  "/dashboard/client/profile":    "Profile",
 };
 
 export default function ClientDashboardLayout({ children }: { children: React.ReactNode }) {

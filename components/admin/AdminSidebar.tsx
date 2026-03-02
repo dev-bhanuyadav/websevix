@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -41,6 +42,7 @@ const NAV_ITEMS = (pendingOrdersCount: number, unreadMessagesCount: number): Nav
   { label: "Messages", href: "/admin/messages", icon: MessageSquare, badge: unreadMessagesCount },
   { label: "Notifications", href: "/admin/notifications", icon: Bell },
   { label: "Payments", href: "/admin/payments", icon: CreditCard },
+  { label: "Services", href: "/admin/services", icon: Shield },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];

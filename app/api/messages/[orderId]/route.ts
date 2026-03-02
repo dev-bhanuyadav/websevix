@@ -77,16 +77,17 @@ export async function POST(
     if (!order) return jsonResponse({ error: "Order not found" }, 404);
 
     const body = await request.json();
-    const { type = "text", content, file } = body;
+    const { type = "text", content, file, paymentRequestId, paymentAmount, paymentType, paymentStatus } = body;
     if (!content && !file) return jsonResponse({ error: "content or file required" }, 400);
 
     const message = await Message.create({
-      orderId:    order._id,
-      senderId:   payload.userId,
-      senderRole: isAdmin ? "admin" : "client",
+      orderId:          order._id,
+      senderId:         payload.userId,
+      senderRole:       isAdmin ? "admin" : "client",
       type,
       content,
       file,
+      ...(paymentRequestId && { paymentRequestId, paymentAmount, paymentType, paymentStatus }),
     });
 
     try {

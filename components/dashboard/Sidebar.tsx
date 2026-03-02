@@ -7,15 +7,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Sparkles, Package, MessageSquare,
-  User, LogOut, ChevronLeft, ChevronRight, X, Menu,
+  User, LogOut, ChevronLeft, ChevronRight, X, Menu, Shield,
 } from "lucide-react";
 
 const NAV = [
-  { href: "/dashboard/client",           label: "Overview",   icon: LayoutDashboard },
-  { href: "/dashboard/client/new-order", label: "New Order",  icon: Sparkles,   highlight: true },
-  { href: "/dashboard/client/orders",    label: "My Orders",  icon: Package },
-  { href: "/dashboard/client/messages",  label: "Messages",   icon: MessageSquare },
-  { href: "/dashboard/client/profile",   label: "Profile",    icon: User },
+  { href: "/dashboard/client",            label: "Overview",    icon: LayoutDashboard },
+  { href: "/dashboard/client/new-order",  label: "New Order",   icon: Sparkles,  highlight: true },
+  { href: "/dashboard/client/orders",     label: "My Orders",   icon: Package },
+  { href: "/dashboard/client/messages",   label: "Messages",    icon: MessageSquare },
+  { href: "/dashboard/client/services",   label: "My Services", icon: Shield },
+  { href: "/dashboard/client/profile",    label: "Profile",     icon: User },
 ];
 
 interface SidebarProps {

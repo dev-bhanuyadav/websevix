@@ -7,7 +7,7 @@ import {
   ArrowLeft, Send, Paperclip,
   MoreVertical, CheckCheck, Check, FileText,
   Download, X, Image as ImageIcon, Loader2,
-  ShieldCheck,
+  ShieldCheck, IndianRupee, CreditCard, Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -21,14 +21,19 @@ interface FileAttachment {
 }
 
 interface Msg {
-  _id:        string;
-  senderId:   string;
-  senderRole: "client" | "admin";
-  type:       "text" | "file" | "image" | "system";
-  content?:   string;
-  file?:      FileAttachment;
-  createdAt:  string;
-  isRead:     boolean;
+  _id:              string;
+  senderId:         string;
+  senderRole:       "client" | "admin";
+  type:             "text" | "file" | "image" | "system" | "payment_request";
+  content?:         string;
+  file?:            FileAttachment;
+  createdAt:        string;
+  isRead:           boolean;
+  // payment request fields
+  paymentRequestId?: string;
+  paymentAmount?:    number;
+  paymentType?:      "advance" | "milestone" | "final";
+  paymentStatus?:    "pending" | "paid" | "cancelled";
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -60,6 +65,166 @@ function formatFileSize(bytes?: number): string {
   if (bytes < 1024)       return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ─── Payment Request Card ─────────────────────────────────────────
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Razorpay: any;
+  }
+}
+
+function PaymentCard({
+  msg,
+  accessToken,
+  onPaid,
+}: {
+  msg: Msg;
+  accessToken: string | null;
+  onPaid: (msgId: string) => void;
+}) {
+  const [paying,  setPaying]  = useState(false);
+  const [error,   setError]   = useState("");
+  const [success, setSuccess] = useState(msg.paymentStatus === "paid");
+
+  const TYPE_LABELS: Record<string, string> = {
+    advance: "Advance Payment",
+    milestone: "Milestone Payment",
+    final: "Final Payment",
+  };
+
+  const handlePay = async () => {
+    if (!accessToken || !msg.paymentRequestId) return;
+    setPaying(true);
+    setError("");
+    try {
+      // Load Razorpay script
+      if (!document.querySelector('script[src*="razorpay"]')) {
+        await new Promise<void>((res, rej) => {
+          const s = document.createElement("script");
+          s.src = "https://checkout.razorpay.com/v1/checkout.js";
+          s.onload = () => res(); s.onerror = () => rej(new Error("Razorpay load failed"));
+          document.body.appendChild(s);
+        });
+      }
+      // Create Razorpay order
+      const initRes  = await fetch(`/api/payments/requests/${msg.paymentRequestId}/pay`, {
+        method: "POST", headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const initData = await initRes.json();
+      if (!initData.success) throw new Error(initData.error ?? "Payment init failed");
+      const rzpOrder = initData.order;
+
+      // Mock mode
+      if (rzpOrder._mock) {
+        await fetch(`/api/payments/requests/${msg.paymentRequestId}/verify`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ razorpay_order_id: rzpOrder.id, razorpay_payment_id: `pay_mock_${Date.now()}`, razorpay_signature: "mock", _mock: true }),
+        });
+        setSuccess(true); onPaid(msg._id);
+        return;
+      }
+
+      // Real Razorpay popup
+      setPaying(false);
+      new window.Razorpay({
+        key:         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "",
+        amount:      rzpOrder.amount,
+        currency:    rzpOrder.currency,
+        name:        "Websevix",
+        description: TYPE_LABELS[msg.paymentType ?? "advance"] ?? "Payment",
+        order_id:    rzpOrder.id,
+        theme:       { color: "#10B981" },
+        modal:       { ondismiss: () => setPaying(false) },
+        handler: async (res: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          setPaying(true);
+          await fetch(`/api/payments/requests/${msg.paymentRequestId}/verify`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ ...res }),
+          });
+          setSuccess(true); onPaid(msg._id);
+          setPaying(false);
+        },
+      }).open();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Payment failed");
+      setPaying(false);
+    }
+  };
+
+  return (
+    <motion.div
+      className="flex justify-start my-2"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+    >
+      <div
+        className="w-72 rounded-2xl overflow-hidden"
+        style={{
+          background: success
+            ? "linear-gradient(135deg,rgba(16,185,129,0.12),rgba(16,185,129,0.06))"
+            : "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(139,92,246,0.06))",
+          border: `1px solid ${success ? "rgba(16,185,129,0.3)" : "rgba(99,102,241,0.3)"}`,
+        }}
+      >
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 flex items-center gap-2.5"
+          style={{ borderBottom: `1px solid ${success ? "rgba(16,185,129,0.15)" : "rgba(99,102,241,0.15)"}` }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: success ? "rgba(16,185,129,0.2)" : "rgba(99,102,241,0.2)" }}>
+            {success ? <ShieldCheck size={18} className="text-emerald-400" /> : <IndianRupee size={18} className="text-indigo-400" />}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-snow">{TYPE_LABELS[msg.paymentType ?? "advance"]}</p>
+            <p className="text-[10px] text-slate">From Websevix Team</p>
+          </div>
+        </div>
+        {/* Amount */}
+        <div className="px-4 py-3">
+          <p className="text-[11px] text-slate mb-1">{success ? "Paid" : "Amount Due"}</p>
+          <p className="text-2xl font-bold font-display"
+            style={{ color: success ? "#10B981" : "#A78BFA" }}>
+            ₹{(msg.paymentAmount ?? 0).toLocaleString("en-IN")}
+          </p>
+          {msg.content && (
+            <p className="text-xs text-slate mt-1 line-clamp-2">
+              {msg.content.replace(/^Payment request:\s*₹[\d,.]+\s*—\s*/i, "")}
+            </p>
+          )}
+        </div>
+        {/* Action */}
+        <div className="px-4 pb-4">
+          {success ? (
+            <div className="flex items-center gap-2 py-2 px-3 rounded-xl text-sm font-semibold text-emerald-400"
+              style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
+              <ShieldCheck size={15} /> Payment Received
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handlePay}
+                disabled={paying}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-60 hover:opacity-90 transition-opacity"
+                style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+              >
+                {paying ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                {paying ? "Processing…" : "Pay Now"}
+              </button>
+              {error && <p className="text-[10px] text-red-400 mt-1.5 text-center">{error}</p>}
+              <div className="flex items-center justify-center gap-1 mt-2 text-[10px] text-slate">
+                <Lock size={9} /> Secured by Razorpay
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 // ─── Message Bubble ───────────────────────────────────────────────
@@ -488,9 +653,22 @@ export default function OrderChatPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  {items.map(msg => (
-                    <Bubble key={msg._id} msg={msg} isOwn={msg.senderRole === "client"} />
-                  ))}
+                  {items.map(msg =>
+                    msg.type === "payment_request" ? (
+                      <PaymentCard
+                        key={msg._id}
+                        msg={msg}
+                        accessToken={accessToken}
+                        onPaid={(id) =>
+                          setMsgs(prev =>
+                            prev.map(m => m._id === id ? { ...m, paymentStatus: "paid" } : m)
+                          )
+                        }
+                      />
+                    ) : (
+                      <Bubble key={msg._id} msg={msg} isOwn={msg.senderRole === "client"} />
+                    )
+                  )}
                 </div>
               </div>
             ))}

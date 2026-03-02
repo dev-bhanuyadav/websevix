@@ -8,6 +8,9 @@ import {
   Send,
   Paperclip,
   Loader2,
+  IndianRupee,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
@@ -71,6 +74,14 @@ function AdminMessagesContent() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Payment request form
+  const [showPayForm, setShowPayForm] = useState(false);
+  const [payAmount, setPayAmount]     = useState("");
+  const [payDesc, setPayDesc]         = useState("");
+  const [payType, setPayType]         = useState<"advance" | "milestone" | "final">("advance");
+  const [sendingPay, setSendingPay]   = useState(false);
+  const [payError, setPayError]       = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef   = useRef<HTMLInputElement>(null);
@@ -200,6 +211,55 @@ function AdminMessagesContent() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleSendPaymentRequest = async () => {
+    if (!accessToken || !selectedOrder || !payAmount) return;
+    const amount = parseFloat(payAmount);
+    if (isNaN(amount) || amount <= 0) { setPayError("Enter a valid amount"); return; }
+    setSendingPay(true);
+    setPayError("");
+    try {
+      // Create PaymentRequest in DB
+      const prRes = await fetch("/api/admin/payments/request", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId:     selectedOrder._id,
+          clientId:    selectedOrder.clientId?._id,
+          amount,
+          description: payDesc || `${payType.charAt(0).toUpperCase() + payType.slice(1)} payment`,
+          type:        payType,
+        }),
+      });
+      const prData = await prRes.json();
+      if (!prRes.ok) throw new Error(prData.error ?? "Failed to create payment request");
+
+      // Send a payment_request message in chat
+      const msgRes = await fetch(`/api/messages/${selectedOrderId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content:          `Payment request: ₹${amount} — ${payDesc || payType}`,
+          type:             "payment_request",
+          paymentRequestId: prData.request._id,
+          paymentAmount:    amount,
+          paymentType:      payType,
+          paymentStatus:    "pending",
+        }),
+      });
+      const msgData = await msgRes.json();
+      if (msgData.message) {
+        setMessages(prev => [...prev, msgData.message]);
+        lastMsgTime.current = msgData.message.createdAt;
+      }
+      setShowPayForm(false);
+      setPayAmount(""); setPayDesc(""); setPayType("advance");
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Error sending payment request");
+    } finally {
+      setSendingPay(false);
     }
   };
 
@@ -349,25 +409,105 @@ function AdminMessagesContent() {
         ) : (
           <>
             {/* Chat header */}
-            <div
-              className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-snow">
-                    {clientName(selectedOrder)}
-                  </p>
-                  <p className="text-xs font-mono" style={{ color: "#818CF8" }}>
-                    #{selectedOrder.orderId}
-                  </p>
+            <div className="flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <div className="flex items-center justify-between px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-snow">{clientName(selectedOrder)}</p>
+                    <p className="text-xs font-mono" style={{ color: "#818CF8" }}>#{selectedOrder.orderId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[selectedOrder.status]?.cls ?? ""}`}>
+                    {STATUS_COLORS[selectedOrder.status]?.label ?? selectedOrder.status}
+                  </span>
+                  <button
+                    onClick={() => { setShowPayForm(v => !v); setPayError(""); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                    style={{ background: "linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.1))", border: "1px solid rgba(16,185,129,0.3)", color: "#10B981" }}
+                  >
+                    <IndianRupee size={12} />
+                    Request Payment
+                    <ChevronDown size={11} style={{ transform: showPayForm ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+                  </button>
                 </div>
               </div>
-              <span
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[selectedOrder.status]?.cls ?? ""}`}
-              >
-                {STATUS_COLORS[selectedOrder.status]?.label ?? selectedOrder.status}
-              </span>
+
+              {/* Payment request form — slides down */}
+              <AnimatePresence>
+                {showPayForm && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-5 pb-4 pt-1 space-y-3" style={{ background: "rgba(16,185,129,0.04)", borderTop: "1px solid rgba(16,185,129,0.12)" }}>
+                      <p className="text-xs font-semibold text-emerald-400">New Payment Request</p>
+                      <div className="flex gap-2">
+                        {/* Amount */}
+                        <div className="flex-1">
+                          <label className="text-[10px] text-slate mb-1 block">Amount (₹)</label>
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="e.g. 5000"
+                            value={payAmount}
+                            onChange={e => setPayAmount(e.target.value)}
+                            className="w-full px-3 py-2 text-sm text-snow rounded-lg outline-none"
+                            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                          />
+                        </div>
+                        {/* Type */}
+                        <div>
+                          <label className="text-[10px] text-slate mb-1 block">Type</label>
+                          <select
+                            value={payType}
+                            onChange={e => setPayType(e.target.value as typeof payType)}
+                            className="px-3 py-2 text-sm text-snow rounded-lg outline-none"
+                            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                          >
+                            <option value="advance">Advance</option>
+                            <option value="milestone">Milestone</option>
+                            <option value="final">Final</option>
+                          </select>
+                        </div>
+                      </div>
+                      {/* Description */}
+                      <div>
+                        <label className="text-[10px] text-slate mb-1 block">Description (optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 50% advance for homepage design"
+                          value={payDesc}
+                          onChange={e => setPayDesc(e.target.value)}
+                          className="w-full px-3 py-2 text-sm text-snow rounded-lg outline-none"
+                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                        />
+                      </div>
+                      {payError && <p className="text-xs text-red-400">{payError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSendPaymentRequest}
+                          disabled={sendingPay || !payAmount}
+                          className="flex-1 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
+                          style={{ background: "linear-gradient(135deg,#10B981,#059669)" }}
+                        >
+                          {sendingPay ? <Loader2 size={14} className="animate-spin" /> : <IndianRupee size={14} />}
+                          {sendingPay ? "Sending…" : `Send ₹${payAmount || "0"} Request`}
+                        </button>
+                        <button
+                          onClick={() => setShowPayForm(false)}
+                          className="p-2 rounded-lg text-slate hover:text-snow hover:bg-white/10 transition-all"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Messages */}
