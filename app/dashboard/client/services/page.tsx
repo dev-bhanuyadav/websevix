@@ -99,14 +99,14 @@ function ClientServicesInner() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Show success/fail toast when redirected back from Razorpay
+  // Handle redirect-back from Razorpay callback (fallback path)
   useEffect(() => {
     const status = searchParams.get("autopay");
     if (status === "success") {
-      setAutopayMsg({ type: "success", text: "Autopay activated! ₹2 was verified via UPI AutoPay." });
+      setAutopayMsg({ type: "success", text: "Autopay activated! ₹2 verified. Monthly billing up to ₹15,000." });
       load();
     } else if (status === "failed") {
-      setAutopayMsg({ type: "error", text: "Autopay setup failed or was cancelled. You can try again or pay manually from chat." });
+      setAutopayMsg({ type: "error", text: "Autopay setup was cancelled or failed. Try again anytime." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -170,26 +170,43 @@ function ClientServicesInner() {
         return;
       }
 
-      // ── UPI AutoPay / Recurring checkout ──────────────────────────────────
-      // `recurring: "1"` + `customer_id` + `callback_url` is the Razorpay
-      // mandate registration flow. ₹2 is charged via UPI AutoPay to register
-      // the mandate (max ₹15,000/month). Page redirects back after approval.
+      // ── Razorpay checkout — all payment methods (UPI, Card, NB, Wallet) ───
       const rzp = new window.Razorpay({
-        key:          d.keyId,
-        amount:       d.amount,          // 200 paise = ₹2
-        currency:     d.currency,
-        order_id:     d.orderId,
-        customer_id:  d.customerId,
-        recurring:    "1",               // enable UPI AutoPay mandate
-        callback_url: d.callbackUrl,     // Razorpay will redirect here
-        name:         "Websevix",
-        description:  "AutoPay Setup — ₹2 via UPI AutoPay (max ₹15,000/month)",
-        prefill:      d.prefill,
-        theme:        { color: "#6366F1" },
+        key:         d.keyId,
+        amount:      d.amount,
+        currency:    d.currency,
+        order_id:    d.orderId,
+        name:        "Websevix",
+        description: "Autopay Setup — ₹2 one-time verification",
+        prefill:     d.prefill,
+        theme:       { color: "#6366F1" },
+        handler: async (response: RazorpaySuccessResponse) => {
+          try {
+            const vr = await fetch("/api/mandate/verify", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+              body:    JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+              }),
+            });
+            const vd = await vr.json();
+            if (vd.success) {
+              setAutopayMsg({ type: "success", text: "Autopay activated! ₹2 verified. Monthly billing up to ₹15,000." });
+              load();
+            } else {
+              setAutopayMsg({ type: "error", text: vd.error ?? "Verification failed. Please contact support." });
+            }
+          } catch {
+            setAutopayMsg({ type: "error", text: "Verification error. Please contact support." });
+          } finally {
+            setSettingUp(false);
+          }
+        },
         modal: { ondismiss: () => setSettingUp(false) },
       });
       rzp.open();
-      // Note: no handler needed — Razorpay redirects to callback_url after payment
     } catch {
       setAutopayMsg({
         type: "error",
