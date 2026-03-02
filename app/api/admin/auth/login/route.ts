@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { RefreshToken } from "@/models/RefreshToken";
 import { signAccessToken, signRefreshToken } from "@/lib/jwt";
 import { jsonResponse } from "@/lib/api";
 import { cookies } from "next/headers";
@@ -44,6 +45,15 @@ export async function POST(request: NextRequest) {
     const uid          = user._id.toString();
     const accessToken  = await signAccessToken({ userId: uid, email: user.email, role: "admin" });
     const refreshToken = await signRefreshToken({ userId: uid, role: "admin" });
+
+    // Save refresh token to DB so /api/auth/refresh can validate it
+    await RefreshToken.create({
+      userId:    user._id,
+      token:     refreshToken,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+      ip:        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+      expiresAt: new Date(Date.now() + REFRESH_MAX_AGE * 1000),
+    });
 
     const cookieStore = await cookies();
     const cookieOpts = {
