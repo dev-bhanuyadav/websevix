@@ -55,7 +55,7 @@ export async function previewMonthlyBilling(): Promise<BillingPreviewClient[]> {
     .populate<{ serviceId: { _id: mongoose.Types.ObjectId; name: string; basePrice: number; billingCycle: string } }>(
       "serviceId", "name basePrice billingCycle",
     )
-    .lean()) as LeanClientService[];
+    .lean()) as unknown as LeanClientService[];
 
   // Group by client
   const byClient: Record<string, LeanClientService[]> = {};
@@ -137,7 +137,7 @@ export async function runMonthlyBilling(
         .populate<{ serviceId: { name: string; basePrice: number; billingCycle: string; _id: mongoose.Types.ObjectId } }>(
           "serviceId", "name basePrice billingCycle",
         )
-        .lean()) as LeanClientService[];
+        .lean()) as unknown as LeanClientService[];
 
       const lineItems = activeSubs.map(cs => ({
         serviceId:    cs.serviceId._id,
@@ -205,7 +205,7 @@ export async function calculateMRR(): Promise<{
     .populate<{ serviceId: { basePrice: number; category: string } }>(
       "serviceId", "basePrice category",
     )
-    .lean()) as LeanClientServiceMRR[];
+    .lean()) as unknown as LeanClientServiceMRR[];
 
   let total = 0;
   const byCategory: Record<string, number> = {};
