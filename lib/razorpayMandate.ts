@@ -60,9 +60,8 @@ export async function chargeSubscription(
   if (!rzp) return { id: `pay_mock_${Date.now()}`, _mock: true };
 
   // Razorpay "As Presented" debit — charge exactly the given amount
-  return rzp.subscriptions.pendingUpdate(subscriptionId, {
-    // Override amount for this charge
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (rzp.subscriptions as any).pendingUpdate(subscriptionId, {});
 }
 
 /** Cancel a subscription */
