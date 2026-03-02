@@ -34,9 +34,9 @@ if [ ! -f "$APP_DIR/.env.production" ]; then
   exit 1
 fi
 
-# ── Install dependencies ──────────────────────────────────────
+# ── Install dependencies (incl. dev — needed for Tailwind/build) ──
 echo "→ Installing dependencies..."
-npm ci --omit=dev
+npm ci
 
 # ── Build ─────────────────────────────────────────────────────
 echo "→ Building Next.js (standalone)..."

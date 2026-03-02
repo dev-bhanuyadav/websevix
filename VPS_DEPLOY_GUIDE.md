@@ -120,8 +120,8 @@ CRON_SECRET=websevix_cron_secret_2024
 ```bash
 cd /var/www/websevix
 
-# Dependencies install (production only)
-npm ci --omit=dev
+# Dependencies install (dev bhi chahiye — Tailwind/PostCSS build ke liye)
+npm ci
 
 # Build karo
 npm run build
@@ -218,7 +218,7 @@ cd /var/www/websevix
 git pull origin main
 
 # Dependencies update (agar package.json change hua ho)
-npm ci --omit=dev
+npm ci
 
 # Rebuild
 npm run build
