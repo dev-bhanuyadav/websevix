@@ -409,7 +409,7 @@ function AdminOrdersInner() {
                                 <Eye size={13} style={{ color: "#818CF8" }} />
                               </button>
                             </Link>
-                            <Link href={`/admin/messages/${order._id}`}>
+                            <Link href={`/admin/messages?id=${order._id}`}>
                               <button
                                 className="p-1.5 rounded-lg transition-colors hover:bg-cyan-500/20"
                                 title="Open chat"

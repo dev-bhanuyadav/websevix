@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -10,6 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchParams } from "next/navigation";
 
 type OrderStatus = "pending_review" | "in_progress" | "completed" | "cancelled";
 
@@ -56,8 +57,11 @@ interface OrdersResponse {
   orders: OrderConversation[];
 }
 
-export default function AdminMessagesPage() {
+function AdminMessagesContent() {
   const { accessToken } = useAuth();
+  const searchParams = useSearchParams();
+  const preselectedId = searchParams.get("id");
+
   const [orders, setOrders] = useState<OrderConversation[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [search, setSearch] = useState("");
@@ -80,9 +84,18 @@ export default function AdminMessagesPage() {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r) => r.json())
-      .then((d: OrdersResponse) => setOrders(d.orders ?? []))
+      .then((d: OrdersResponse) => {
+        const list = d.orders ?? [];
+        setOrders(list);
+        // Auto-select if navigated from orders page with ?id=
+        if (preselectedId && !selectedOrderId) {
+          const match = list.find((o) => o._id === preselectedId);
+          if (match) setSelectedOrderId(match._id);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoadingOrders(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   const fetchMessages = useCallback(
@@ -435,5 +448,18 @@ export default function AdminMessagesPage() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+export default function AdminMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-[calc(100vh-7rem)] flex items-center justify-center rounded-2xl"
+        style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <Loader2 size={24} className="text-indigo-400 animate-spin" />
+      </div>
+    }>
+      <AdminMessagesContent />
+    </Suspense>
   );
 }
