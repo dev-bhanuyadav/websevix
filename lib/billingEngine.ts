@@ -39,18 +39,26 @@ interface BillingPreviewClient {
   hasMandate: boolean;
 }
 
+// Typed lean document returned from populate query
+interface LeanClientService {
+  _id:          mongoose.Types.ObjectId;
+  clientId:     mongoose.Types.ObjectId;
+  customPrice?: number | null;
+  serviceId:    { _id: mongoose.Types.ObjectId; name: string; basePrice: number; billingCycle: string };
+}
+
 /** Preview: who will be billed and how much this month */
 export async function previewMonthlyBilling(): Promise<BillingPreviewClient[]> {
   await connectDB();
 
-  const activeSubs = await ClientService.find({ status: "active" })
-    .populate<{ serviceId: { name: string; basePrice: number; billingCycle: string } }>(
+  const activeSubs = (await ClientService.find({ status: "active" })
+    .populate<{ serviceId: { _id: mongoose.Types.ObjectId; name: string; basePrice: number; billingCycle: string } }>(
       "serviceId", "name basePrice billingCycle",
     )
-    .lean();
+    .lean()) as LeanClientService[];
 
   // Group by client
-  const byClient: Record<string, typeof activeSubs> = {};
+  const byClient: Record<string, LeanClientService[]> = {};
   for (const cs of activeSubs) {
     const cid = cs.clientId.toString();
     (byClient[cid] ??= []).push(cs);
@@ -122,14 +130,14 @@ export async function runMonthlyBilling(
       }
 
       // Build line items from active services
-      const activeSubs = await ClientService.find({
+      const activeSubs = (await ClientService.find({
         clientId: new mongoose.Types.ObjectId(client.clientId),
         status: "active",
       })
         .populate<{ serviceId: { name: string; basePrice: number; billingCycle: string; _id: mongoose.Types.ObjectId } }>(
           "serviceId", "name basePrice billingCycle",
         )
-        .lean();
+        .lean()) as LeanClientService[];
 
       const lineItems = activeSubs.map(cs => ({
         serviceId:    cs.serviceId._id,
@@ -179,6 +187,12 @@ export async function runMonthlyBilling(
   return results;
 }
 
+interface LeanClientServiceMRR {
+  _id:          mongoose.Types.ObjectId;
+  customPrice?: number | null;
+  serviceId:    { basePrice: number; category: string };
+}
+
 /** Calculate MRR from all active subscriptions */
 export async function calculateMRR(): Promise<{
   total:      number;
@@ -187,11 +201,11 @@ export async function calculateMRR(): Promise<{
 }> {
   await connectDB();
 
-  const activeSubs = await ClientService.find({ status: "active" })
+  const activeSubs = (await ClientService.find({ status: "active" })
     .populate<{ serviceId: { basePrice: number; category: string } }>(
       "serviceId", "basePrice category",
     )
-    .lean();
+    .lean()) as LeanClientServiceMRR[];
 
   let total = 0;
   const byCategory: Record<string, number> = {};
