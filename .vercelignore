@@ -19,3 +19,7 @@ scripts/
 # OS
 .DS_Store
 Thumbs.db
+
+# TypeScript incremental build cache (causes Vercel build conflicts)
+tsconfig.tsbuildinfo
+*.tsbuildinfo

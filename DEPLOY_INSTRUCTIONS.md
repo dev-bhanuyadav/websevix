@@ -52,8 +52,14 @@ git push -u origin main
 2. **Add New** → **Project**
 3. **Import** → `dev-bhanuyadav/websevix` repo select karein
 4. Framework: **Next.js** auto-detect ho jayega
-5. **Deploy** par click karein
-6. 1–2 minute baad site live ho jayegi, URL milega jaise: `websevix.vercel.app`
+5. **Environment Variables** mein apna `.env.local` wale saare variables add karein (Build + Runtime dono ke liye)
+6. **Deploy** par click karein
+7. 1–2 minute baad site live ho jayegi, URL milega jaise: `websevix.vercel.app`
+
+### Agar "We encountered an internal error" aaye
+- **Project Settings** → **Environment Variables** → **Add**: Name = `NODE_OPTIONS`, Value = `--max-old-space-size=8192`, **Apply to**: sirf **Build**
+- **Deployments** tab → latest deployment → **⋯** (three dots) → **Redeploy** → **Redeploy with Build Cache cleared** select karke redeploy karein
+- Ye project mein `next.config.js`, `vercel.json`, aur `.node-version` (Node 18) already set hain taaki build chhota rahe aur deploy succeed ho
 
 ---
 
