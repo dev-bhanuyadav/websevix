@@ -73,7 +73,9 @@ function AdminMessagesContent() {
   const [sending, setSending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef   = useRef<HTMLInputElement>(null);
+  const pollRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastMsgTime    = useRef<string | null>(null);
 
   const selectedOrder = orders.find((o) => o._id === selectedOrderId) ?? null;
 
@@ -98,27 +100,61 @@ function AdminMessagesContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
+  // Full load when switching conversations
   const fetchMessages = useCallback(
     (orderId: string) => {
       if (!accessToken) return;
       setLoadingMessages(true);
+      lastMsgTime.current = null;
       fetch(`/api/messages/${orderId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
         .then((r) => r.json())
         .then((d: MessagesResponse) => {
-          setMessages(d.messages ?? []);
+          const list = d.messages ?? [];
+          setMessages(list);
+          if (list.length > 0) lastMsgTime.current = list[list.length - 1].createdAt;
         })
         .catch(console.error)
         .finally(() => setLoadingMessages(false));
     },
-    [accessToken]
+    [accessToken],
   );
+
+  // Incremental poll — only fetches messages newer than last known
+  const pollNew = useCallback(() => {
+    if (!accessToken || !selectedOrderId) return;
+    const since = lastMsgTime.current ?? new Date(0).toISOString();
+    fetch(`/api/messages/${selectedOrderId}?since=${encodeURIComponent(since)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => r.json())
+      .then((d: MessagesResponse) => {
+        const fresh = d.messages ?? [];
+        if (fresh.length === 0) return;
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m._id));
+          const newOnes = fresh.filter((m) => !existingIds.has(m._id));
+          if (newOnes.length === 0) return prev;
+          lastMsgTime.current = newOnes[newOnes.length - 1].createdAt;
+          return [...prev, ...newOnes];
+        });
+      })
+      .catch(() => {});
+  }, [accessToken, selectedOrderId]);
 
   useEffect(() => {
     if (!selectedOrderId) return;
     fetchMessages(selectedOrderId);
   }, [selectedOrderId, fetchMessages]);
+
+  // Start fast polling when a conversation is open
+  useEffect(() => {
+    if (!selectedOrderId) return;
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(pollNew, 300);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [selectedOrderId, pollNew]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

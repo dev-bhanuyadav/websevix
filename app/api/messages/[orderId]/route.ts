@@ -34,13 +34,22 @@ export async function GET(
     const payload = await verifyAccessToken(auth);
     const isAdmin = payload.role === "admin";
 
+    // ?since=ISO_TIMESTAMP  → only return messages after that time (for fast polling)
+    const sinceParam = request.nextUrl.searchParams.get("since");
+    const sinceDate  = sinceParam ? new Date(sinceParam) : null;
+
     await connectDB();
     const order = await Order.findOne(
       buildOrderQuery(params.orderId, payload.userId, isAdmin),
     );
     if (!order) return jsonResponse({ error: "Order not found" }, 404);
 
-    const messages = await Message.find({ orderId: order._id })
+    const query: Record<string, unknown> = { orderId: order._id };
+    if (sinceDate && !isNaN(sinceDate.getTime())) {
+      query.createdAt = { $gt: sinceDate };
+    }
+
+    const messages = await Message.find(query)
       .sort({ createdAt: 1 })
       .lean();
 

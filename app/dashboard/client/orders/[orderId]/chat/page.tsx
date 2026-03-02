@@ -247,18 +247,44 @@ export default function OrderChatPage() {
   const scrollRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLTextAreaElement>(null);
   const fileRef    = useRef<HTMLInputElement>(null);
-  const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastMsgTime = useRef<string | null>(null);
 
-  // Fetch messages
+  // Initial full load
   const fetchMessages = useCallback(async (silent = false) => {
     if (!orderId || !accessToken) return;
     if (!silent) setLoading(true);
     try {
       const r    = await fetch(`/api/messages/${orderId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
       const data = await r.json();
-      if (data.messages) setMsgs(data.messages);
-    } catch { /* ignore poll errors */ }
+      if (data.messages && data.messages.length > 0) {
+        setMsgs(data.messages);
+        lastMsgTime.current = data.messages[data.messages.length - 1].createdAt;
+      }
+    } catch { /* ignore */ }
     finally { if (!silent) setLoading(false); }
+  }, [orderId, accessToken]);
+
+  // Fast incremental poll — only fetches NEW messages since last known
+  const pollNew = useCallback(async () => {
+    if (!orderId || !accessToken) return;
+    try {
+      const since = lastMsgTime.current ?? new Date(0).toISOString();
+      const r     = await fetch(
+        `/api/messages/${orderId}?since=${encodeURIComponent(since)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      const data = await r.json();
+      if (data.messages && data.messages.length > 0) {
+        setMsgs(prev => {
+          const existingIds = new Set(prev.map((m: { _id: string }) => m._id));
+          const fresh = data.messages.filter((m: { _id: string }) => !existingIds.has(m._id));
+          if (fresh.length === 0) return prev;
+          lastMsgTime.current = fresh[fresh.length - 1].createdAt;
+          return [...prev, ...fresh];
+        });
+      }
+    } catch { /* ignore poll errors */ }
   }, [orderId, accessToken]);
 
   // Fetch order title
@@ -272,10 +298,10 @@ export default function OrderChatPage() {
 
   useEffect(() => {
     fetchMessages();
-    // Poll every 5s
-    pollRef.current = setInterval(() => fetchMessages(true), 500);
+    // Poll every 300ms — only new messages via ?since=
+    pollRef.current = setInterval(pollNew, 300);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [fetchMessages]);
+  }, [fetchMessages, pollNew]);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
