@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [],
-  },
-
+  // Prevent heavy server-only packages from being bundled into every
+  // serverless function separately (Next.js 14.x key; renamed in v15).
   experimental: {
-    // Next.js 14.x key for server-external packages
-    // (renamed to top-level serverExternalPackages in Next.js 15)
     serverComponentsExternalPackages: [
       "mongoose",
       "@anthropic-ai/sdk",
@@ -17,26 +13,6 @@ const nextConfig = {
       "bcryptjs",
       "jose",
     ],
-
-    // Exclude build-time-only packages from being traced into deployments
-    outputFileTracingExcludes: {
-      "*": [
-        "node_modules/@swc/**",
-        "node_modules/webpack/**",
-        "node_modules/webpack-dev-server/**",
-        "node_modules/@types/**",
-        "node_modules/typescript/**",
-        "node_modules/ts-node/**",
-        "node_modules/esbuild/**",
-        "node_modules/terser/**",
-        "node_modules/jest/**",
-        "node_modules/@jest/**",
-        "node_modules/eslint/**",
-        "node_modules/@eslint/**",
-        "node_modules/prettier/**",
-        "node_modules/**/*.map",
-      ],
-    },
   },
 };
 
