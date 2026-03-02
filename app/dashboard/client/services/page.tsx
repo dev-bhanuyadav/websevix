@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, CreditCard, CheckCircle2, XCircle, Clock, AlertTriangle,
-  IndianRupee, FileText, Loader2, X, Zap,
+  FileText, Loader2, X, Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -33,7 +34,7 @@ interface IInvoice {
   paidAt?: string; createdAt: string;
 }
 
-// Razorpay types declared globally in types/razorpay.d.ts
+// Razorpay global types are in types/razorpay.d.ts
 
 const STATUS_CFG: Record<SubStatus, { icon: React.ReactNode; label: string; color: string; bg: string }> = {
   pending_acceptance: { icon: <Clock size={12} />,         label: "Awaiting Response", color: "#FBBF24", bg: "rgba(251,191,36,0.1)" },
@@ -62,17 +63,18 @@ function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window !== "undefined" && window.Razorpay) { resolve(true); return; }
     const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.src    = "https://checkout.razorpay.com/v1/checkout.js";
     script.onload  = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Inner Page (needs useSearchParams — wrapped in Suspense below) ───────────
 
-export default function ClientServicesPage() {
-  const { accessToken } = useAuth();
+function ClientServicesInner() {
+  const { accessToken }  = useAuth();
+  const searchParams     = useSearchParams();
   const [subs,         setSubs]         = useState<ClientSub[]>([]);
   const [mandate,      setMandate]       = useState<IMandate | null>(null);
   const [invoices,     setInvoices]      = useState<IInvoice[]>([]);
@@ -88,14 +90,26 @@ export default function ClientServicesPage() {
     try {
       const r = await fetch("/api/client/services", { headers: { Authorization: `Bearer ${accessToken}` } });
       const d = await r.json();
-      setSubs(d.services  ?? []);
-      setMandate(d.mandate ?? null);
+      setSubs(d.services   ?? []);
+      setMandate(d.mandate  ?? null);
       setInvoices(d.invoices ?? []);
       setMonthlyTotal(d.monthlyTotal ?? 0);
     } finally { setLoading(false); }
   }, [accessToken]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Show success/fail toast when redirected back from Razorpay
+  useEffect(() => {
+    const status = searchParams.get("autopay");
+    if (status === "success") {
+      setAutopayMsg({ type: "success", text: "Autopay activated! ₹2 was verified via UPI AutoPay." });
+      load();
+    } else if (status === "failed") {
+      setAutopayMsg({ type: "error", text: "Autopay setup failed or was cancelled. You can try again or pay manually from chat." });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pre-load Razorpay script once services are fetched
   useEffect(() => {
@@ -126,19 +140,17 @@ export default function ClientServicesPage() {
     setSettingUp(true);
     setAutopayMsg(null);
     try {
-      // Ensure Razorpay script is loaded
       const loaded = await loadRazorpayScript();
 
       const r = await fetch("/api/mandate/create", {
-        method: "POST",
+        method:  "POST",
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const d = await r.json();
 
-      // Already active
       if (d.alreadyActive) { load(); return; }
 
-      // Mock mode (no Razorpay keys configured)
+      // Mock mode — keys not configured, auto-activated
       if (d.mock) {
         setAutopayMsg({ type: "success", text: "Autopay activated successfully!" });
         load();
@@ -158,46 +170,26 @@ export default function ClientServicesPage() {
         return;
       }
 
-      // Open Razorpay checkout for ₹2 verification
+      // ── UPI AutoPay / Recurring checkout ──────────────────────────────────
+      // `recurring: "1"` + `customer_id` + `callback_url` is the Razorpay
+      // mandate registration flow. ₹2 is charged via UPI AutoPay to register
+      // the mandate (max ₹15,000/month). Page redirects back after approval.
       const rzp = new window.Razorpay({
-        key:         d.keyId,
-        amount:      d.amount,
-        currency:    d.currency,
-        order_id:    d.orderId,
-        name:        "Websevix",
-        description: "Autopay Setup — ₹2 one-time verification charge",
-        image:       "/logo.png",
-        prefill:     d.prefill,
-        theme:       { color: "#6366F1" },
-        handler: async (response: RazorpaySuccessResponse) => {
-          try {
-            const vr = await fetch("/api/mandate/verify", {
-              method:  "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-              body:    JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-              } as Record<string, string>),
-            });
-            const vd = await vr.json();
-            if (vd.success) {
-              setAutopayMsg({ type: "success", text: "Autopay set up successfully! ₹2 verification charge will be refunded." });
-              load();
-            } else {
-              setAutopayMsg({ type: "error", text: vd.error ?? "Verification failed. Please contact support." });
-            }
-          } catch {
-            setAutopayMsg({ type: "error", text: "Verification error. Please contact support." });
-          } finally {
-            setSettingUp(false);
-          }
-        },
-        modal: {
-          ondismiss: () => setSettingUp(false),
-        },
+        key:          d.keyId,
+        amount:       d.amount,          // 200 paise = ₹2
+        currency:     d.currency,
+        order_id:     d.orderId,
+        customer_id:  d.customerId,
+        recurring:    "1",               // enable UPI AutoPay mandate
+        callback_url: d.callbackUrl,     // Razorpay will redirect here
+        name:         "Websevix",
+        description:  "AutoPay Setup — ₹2 via UPI AutoPay (max ₹15,000/month)",
+        prefill:      d.prefill,
+        theme:        { color: "#6366F1" },
+        modal: { ondismiss: () => setSettingUp(false) },
       });
       rzp.open();
+      // Note: no handler needed — Razorpay redirects to callback_url after payment
     } catch {
       setAutopayMsg({
         type: "error",
@@ -207,10 +199,10 @@ export default function ClientServicesPage() {
     }
   };
 
-  const pending  = subs.filter(s => s.status === "pending_acceptance");
-  const active   = subs.filter(s => s.status === "active");
-  const others   = subs.filter(s => !["pending_acceptance", "active"].includes(s.status));
-  const nextBill = active.map(s => s.nextBillingDate).filter(Boolean).sort()[0];
+  const pending     = subs.filter(s => s.status === "pending_acceptance");
+  const active      = subs.filter(s => s.status === "active");
+  const others      = subs.filter(s => !["pending_acceptance", "active"].includes(s.status));
+  const nextBill    = active.map(s => s.nextBillingDate).filter(Boolean).sort()[0];
   const hasServices = subs.length > 0;
 
   if (loading) return (
@@ -328,6 +320,22 @@ export default function ClientServicesPage() {
       {/* Invoice History */}
       {invoices.length > 0 && <InvoiceSection invoices={invoices} />}
     </motion.div>
+  );
+}
+
+// ─── Default export wrapped in Suspense (required for useSearchParams) ────────
+
+export default function ClientServicesPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: "rgba(255,255,255,0.04)" }} />
+        ))}
+      </div>
+    }>
+      <ClientServicesInner />
+    </Suspense>
   );
 }
 

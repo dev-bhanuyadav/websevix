@@ -14,6 +14,7 @@ export interface IUser {
   googleId?: string | null;
   profileComplete: boolean;
   lastLogin?: Date | null;
+  razorpayCustomerId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,7 +32,8 @@ const UserSchema = new Schema<IUser>(
     isActive: { type: Boolean, default: true },
     googleId: { type: String, default: null },
     profileComplete: { type: Boolean, default: false },
-    lastLogin: { type: Date, default: null },
+    lastLogin:           { type: Date,   default: null },
+    razorpayCustomerId:  { type: String, default: null },
   },
   { timestamps: true }
 );

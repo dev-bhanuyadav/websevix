@@ -5,8 +5,13 @@ interface RazorpayOptions {
   name: string;
   description?: string;
   image?: string;
-  order_id: string;
-  handler: (response: RazorpaySuccessResponse) => void;
+  order_id?: string;
+  // Recurring / AutoPay fields
+  customer_id?: string;
+  recurring?: "1" | "0";
+  callback_url?: string;          // Redirect URL for recurring flow
+  // Regular one-time payment
+  handler?: (response: RazorpaySuccessResponse) => void;
   prefill?: { name?: string; email?: string; contact?: string };
   notes?: Record<string, string>;
   theme?: { color?: string };

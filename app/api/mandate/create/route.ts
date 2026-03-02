@@ -21,35 +21,56 @@ export async function POST(request: NextRequest) {
 
     const user = await User.findById(payload.userId).lean() as {
       firstName?: string; lastName?: string; email?: string; phone?: string;
+      razorpayCustomerId?: string;
     } | null;
 
-    // ── Try real Razorpay ────────────────────────────────────────────────────
+    // ── Try real Razorpay ─────────────────────────────────────────────────────
     try {
       const { getRazorpay } = await import("@/lib/razorpay");
-      const rzp   = getRazorpay();
+      const rzp = getRazorpay();
+
+      // Step 1 — Create or reuse Razorpay Customer
+      let customerId = user?.razorpayCustomerId ?? "";
+      if (!customerId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const customer = await (rzp as any).customers.create({
+          name:          `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Client",
+          email:         user?.email   ?? "",
+          contact:       user?.phone   ?? "",
+          fail_existing: "0",           // don't fail if already exists, return existing
+        });
+        customerId = customer.id as string;
+        // Persist to avoid re-creating on every visit
+        await User.findByIdAndUpdate(payload.userId, { razorpayCustomerId: customerId });
+      }
+
+      // Step 2 — Create ₹2 order (recurring flag lives in checkout, not in order)
       const order = await rzp.orders.create({
-        amount:   200,          // ₹2 in paise — one-time verification charge
+        amount:   200,           // ₹2 in paise
         currency: "INR",
         receipt:  `mandate_${Date.now()}`,
       });
 
+      const appUrl      = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const callbackUrl = `${appUrl}/api/mandate/callback?userId=${payload.userId}`;
+
       return jsonResponse({
-        success:  true,
-        orderId:  order.id,
-        amount:   200,
-        currency: "INR",
-        keyId:    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        success:      true,
+        orderId:      order.id,
+        customerId,
+        amount:       200,
+        currency:     "INR",
+        keyId:        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        callbackUrl,
         prefill: {
           name:    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
-          email:   user?.email   ?? "",
-          contact: user?.phone   ?? "",
+          email:   user?.email  ?? "",
+          contact: user?.phone  ?? "",
         },
       });
     } catch (rzErr) {
-      const msg = rzErr instanceof Error ? rzErr.message : String(rzErr);
-      console.error("[mandate/create] Razorpay error:", msg);
-
-      // ── Mock mode (keys not configured or Razorpay unreachable) ──────────
+      // ── Mock / Dev fallback (no Razorpay keys or unreachable) ──────────────
+      console.warn("[mandate/create] Razorpay unavailable — using mock:", rzErr instanceof Error ? rzErr.message : rzErr);
       const mandate = await Mandate.create({
         clientId:          payload.userId,
         razorpayMandateId: `mock_${Date.now()}`,
