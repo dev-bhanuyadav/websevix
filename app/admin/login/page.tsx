@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,7 +74,6 @@ function ParticleCanvas() {
 
 // ─── Main Login Page ──────────────────────────────────────────────
 export default function AdminLoginPage() {
-  const router = useRouter();
   const { login } = useAuth();
   const [email,     setEmail]     = useState("");
   const [password,  setPassword]  = useState("");
@@ -118,7 +116,7 @@ export default function AdminLoginPage() {
             email:           data.admin.email,
             firstName:       data.admin.firstName,
             lastName:        data.admin.lastName,
-            role:            data.admin.role as "client",   // cast — AuthContext role type will match
+            role:            data.admin.role as "client" | "developer" | "admin",
             avatar:          null,
             isVerified:      true,
             profileComplete: true,
@@ -127,7 +125,9 @@ export default function AdminLoginPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push("/admin"), 900);
+      // Hard navigation ensures adminToken cookie is included in the next request
+      // (router.push is client-side and may race with cookie being set)
+      setTimeout(() => { window.location.href = "/admin"; }, 1000);
 
     } catch {
       setError("Network error. Please try again.");

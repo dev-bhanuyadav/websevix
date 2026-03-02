@@ -11,21 +11,36 @@ interface DashboardStats {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen,    setMobileOpen]    = useState(false);
   const [pendingOrders, setPendingOrders] = useState(0);
-  const { accessToken } = useAuth();
+  const { accessToken, isLoading } = useAuth();
 
   useEffect(() => {
     if (!accessToken) return;
     fetch("/api/admin/dashboard/stats", {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => r.json())
+      .then(r => r.json())
       .then((d: DashboardStats) => {
         if (typeof d.pendingReview === "number") setPendingOrders(d.pendingReview);
       })
       .catch(console.error);
   }, [accessToken]);
+
+  // While auth is initializing show a minimal spinner
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#060608]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-lg"
+            style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}>
+            W
+          </div>
+          <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <NewOrderToastProvider>

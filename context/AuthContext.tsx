@@ -7,7 +7,7 @@ export interface UserPublic {
   email: string;
   firstName: string;
   lastName: string;
-  role: "client" | "developer";
+  role: "client" | "developer" | "admin";
   avatar: string | null;
   isVerified: boolean;
   profileComplete: boolean;
