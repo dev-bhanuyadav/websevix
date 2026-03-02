@@ -6,24 +6,44 @@ import { Message } from "@/models/Message";
 import { Order } from "@/models/Order";
 import { verifyAccessToken } from "@/lib/jwt";
 
-function buildOrderQuery(id: string, clientId: string) {
+/** Find an order by its string orderId (e.g. "WS-1001") or MongoDB ObjectId.
+ *  Admins can access any order; clients can only access their own. */
+function buildOrderQuery(id: string, userId: string, isAdmin: boolean) {
   const isObjectId = mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+
+  const idClause = isObjectId
+    ? { $or: [{ _id: id }, { orderId: id }] }
+    : { orderId: id };
+
+  // Admins can read/write any order — don't restrict by clientId
+  if (isAdmin) return idClause;
+
+  // Clients can only access their own orders
   return isObjectId
-    ? { $or: [{ _id: id }, { orderId: id }], clientId }
-    : { orderId: id, clientId };
+    ? { $or: [{ _id: id }, { orderId: id }], clientId: userId }
+    : { orderId: id, clientId: userId };
 }
 
-export async function GET(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { orderId: string } },
+) {
   try {
     const auth = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401);
     const payload = await verifyAccessToken(auth);
+    const isAdmin = payload.role === "admin";
 
     await connectDB();
-    const order = await Order.findOne(buildOrderQuery(params.orderId, payload.userId));
+    const order = await Order.findOne(
+      buildOrderQuery(params.orderId, payload.userId, isAdmin),
+    );
     if (!order) return jsonResponse({ error: "Order not found" }, 404);
 
-    const messages = await Message.find({ orderId: order._id }).sort({ createdAt: 1 }).lean();
+    const messages = await Message.find({ orderId: order._id })
+      .sort({ createdAt: 1 })
+      .lean();
+
     return jsonResponse({ messages });
   } catch (e) {
     console.error("[messages GET]", e);
@@ -31,14 +51,20 @@ export async function GET(request: NextRequest, { params }: { params: { orderId:
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { orderId: string } },
+) {
   try {
     const auth = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401);
     const payload = await verifyAccessToken(auth);
+    const isAdmin = payload.role === "admin";
 
     await connectDB();
-    const order = await Order.findOne(buildOrderQuery(params.orderId, payload.userId));
+    const order = await Order.findOne(
+      buildOrderQuery(params.orderId, payload.userId, isAdmin),
+    );
     if (!order) return jsonResponse({ error: "Order not found" }, 404);
 
     const body = await request.json();
@@ -48,7 +74,7 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
     const message = await Message.create({
       orderId:    order._id,
       senderId:   payload.userId,
-      senderRole: "client",
+      senderRole: isAdmin ? "admin" : "client",
       type,
       content,
       file,
@@ -56,8 +82,12 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
 
     try {
       const { getPusher, orderChannel, PUSHER_EVENTS } = await import("@/lib/pusher");
-      await getPusher().trigger(orderChannel(order.orderId), PUSHER_EVENTS.NEW_MESSAGE, { message: message.toObject() });
-    } catch { /* Pusher not configured */ }
+      await getPusher().trigger(
+        orderChannel(order.orderId),
+        PUSHER_EVENTS.NEW_MESSAGE,
+        { message: message.toObject() },
+      );
+    } catch { /* Pusher not configured — polling will pick it up */ }
 
     return jsonResponse({ success: true, message: message.toObject() }, 201);
   } catch (e) {

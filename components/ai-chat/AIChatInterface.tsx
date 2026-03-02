@@ -311,7 +311,7 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isTyping ? "Vix is typing…" : "Type your message…"}
-              disabled={isTyping || historyLock}
+              disabled={isTyping}
               rows={1}
               maxLength={2000}
               className="flex-1 resize-none rounded-xl px-4 py-3 text-sm text-snow placeholder-slate/50 bg-white/[0.05] border border-white/[0.09] focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
