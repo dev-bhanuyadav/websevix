@@ -58,31 +58,23 @@ export async function POST(request: NextRequest) {
       });
 
       // Step 2 — Create subscription
-      // ₹2 addon = immediate verification charge
-      // start_at  = 30 days later so the full monthly charge starts next cycle
+      // start_at = 30 days later → first full monthly charge starts next cycle
+      // Auth charge (₹2) happens automatically during UPI mandate approval in checkout
       const startAt = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
 
       const subscription = await rzp.subscriptions.create({
         plan_id:     plan.id,
-        total_count: 120,          // 10 years of monthly billing
+        total_count: 120,          // 10 years of auto monthly billing
         quantity:    1,
         start_at:    startAt,
-        addons: [
-          {
-            item: {
-              name:     "Autopay Verification",
-              amount:   200,        // ₹2 in paise — charged right now
-              currency: "INR",
-            },
-          },
-        ],
         notify_info: {
-          notify_phone: user?.phone  ?? "",
-          notify_email: user?.email  ?? "",
+          notify_phone: user?.phone ?? "",
+          notify_email: user?.email ?? "",
         },
         notes: {
           clientId:     payload.userId,
           monthlyTotal: String(monthlyTotal),
+          platform:     "websevix",
         },
       });
 

@@ -170,14 +170,15 @@ function ClientServicesInner() {
         return;
       }
 
-      // ── Razorpay Subscription checkout ────────────────────────────────────
-      // subscription_id enables UPI, Card, Net Banking for recurring payments.
-      // ₹2 is charged now (addon verification); full monthly amount charged next cycle.
+      // ── Razorpay Subscription checkout (UPI AutoPay mandate flow) ─────────
+      // Opens Razorpay checkout → user selects UPI → enters UPI ID →
+      // mandate request sent to UPI app → user approves (₹15,000 limit) →
+      // ₹2 auth charge deducted → monthly auto-billing starts next cycle.
       const rzp = new window.Razorpay({
         key:             d.keyId,
         subscription_id: d.subscriptionId,
-        name:            "Websevix",
-        description:     `AutoPay Setup — ₹2 now · ₹${(d.monthlyTotal ?? 0).toLocaleString("en-IN")}/month from next cycle`,
+        name:            "Websevix Autopay",
+        description:     `Enter your UPI ID • ₹2 auth now • ₹${(d.monthlyTotal ?? 0).toLocaleString("en-IN")}/month auto from next cycle`,
         prefill:         d.prefill,
         theme:           { color: "#6366F1" },
         handler: async (response: RazorpaySuccessResponse) => {
@@ -381,9 +382,9 @@ function BillingSummaryCard({ mandate, monthlyTotal, activeCount, nextBillingDat
               <Zap size={18} className="text-indigo-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-snow">Set Up Websevix Autopay</p>
+              <p className="text-sm font-semibold text-snow">Setup UPI Autopay</p>
               <p className="text-xs text-slate mt-0.5">
-                {activeCount} active {activeCount === 1 ? "service" : "services"} · ₹{monthlyTotal.toLocaleString("en-IN")}/month · ₹2 one-time verification charge
+                Enter UPI ID → Approve on app → ₹2 auth → ₹{monthlyTotal.toLocaleString("en-IN")}/month auto-deduct
               </p>
             </div>
           </div>
@@ -392,8 +393,8 @@ function BillingSummaryCard({ mandate, monthlyTotal, activeCount, nextBillingDat
             disabled={settingUp}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60 hover:opacity-90 transition-all flex-shrink-0"
             style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}>
-            {settingUp ? <Loader2 size={13} className="animate-spin" /> : <CreditCard size={13} />}
-            {settingUp ? "Opening…" : "Setup Websevix Autopay"}
+            {settingUp ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+            {settingUp ? "Opening Razorpay…" : "Setup UPI Autopay →"}
           </button>
         </div>
       </motion.div>
