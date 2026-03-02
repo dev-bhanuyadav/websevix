@@ -57,7 +57,7 @@ export default function MessagesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: i * 0.05 }}
             >
-              <Link href={`/dashboard/client/orders/${o.orderId}?tab=chat`}>
+              <Link href={`/dashboard/client/orders/${o.orderId}/chat`}>
                 <motion.div
                   className="flex items-center gap-4 p-4 rounded-2xl border border-white/[0.07] cursor-pointer group"
                   style={{ background: "rgba(255,255,255,0.02)" }}

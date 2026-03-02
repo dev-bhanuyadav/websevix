@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft, Package, MessageSquare, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { MilestoneTracker } from "@/components/dashboard/MilestoneTracker";
-import { ChatWindow } from "@/components/order-chat/ChatWindow";
 import type { IOrder, IMilestone } from "@/models/Order";
 
-type Tab = "overview" | "chat";
+type Tab = "overview";
 
 interface PublicOrder {
   id: string;
@@ -47,6 +46,7 @@ export default function OrderDetailPage() {
   const { orderId }    = useParams<{ orderId: string }>();
   const searchParams   = useSearchParams();
   const initialTab     = (searchParams.get("tab") as Tab) ?? "overview";
+  const router         = useRouter();
 
   const { accessToken } = useAuth();
   const [order,   setOrder]   = useState<PublicOrder | null>(null);
@@ -177,7 +177,7 @@ export default function OrderDetailPage() {
         {([["overview", "Overview", Package], ["chat", "Project Chat", MessageSquare]] as const).map(([val, label, Icon]) => (
           <button
             key={val}
-            onClick={() => setTab(val)}
+            onClick={() => val === "chat" ? router.push(`/dashboard/client/orders/${orderId}/chat`) : setTab(val as Tab)}
             className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               tab === val ? "text-snow" : "text-slate hover:text-silver"
             }`}
@@ -221,19 +221,7 @@ export default function OrderDetailPage() {
               <MilestoneTracker milestones={order.milestones} />
             </div>
           </motion.div>
-        ) : (
-          <motion.div
-            key="chat"
-            className="rounded-2xl border border-white/[0.07] overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.02)", height: 520 }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-          >
-            <ChatWindow orderId={order.orderId} />
-          </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Package, CheckCircle, Clock, Wallet, Sparkles, ArrowRight, Activity,
+  CircleDot, Circle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -53,10 +54,10 @@ export default function ClientOverviewPage() {
   const recent    = orders.slice(0, 5);
 
   const activityItems = recent.map(o => ({
-    id:   o.id as string,
-    text: `Order ${o.orderId} — ${(STATUS_BADGE[o.status as keyof typeof STATUS_BADGE] ?? STATUS_BADGE.pending_review).label}`,
-    time: timeAgo(o.updatedAt as string),
-    icon: o.status === "completed" ? "✅" : o.status === "in_progress" ? "🔵" : "🟡",
+    id:        o.id as string,
+    text:      `Order ${o.orderId} — ${(STATUS_BADGE[o.status as keyof typeof STATUS_BADGE] ?? STATUS_BADGE.pending_review).label}`,
+    time:      timeAgo(o.updatedAt as string),
+    iconType:  o.status === "completed" ? "done" : o.status === "in_progress" ? "active" : "pending",
   }));
 
   return (
@@ -72,8 +73,7 @@ export default function ClientOverviewPage() {
           <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent"
             style={{ backgroundSize: "200% auto", animation: "gradient-text 8s ease infinite" }}>
             {user?.firstName ?? "there"}
-          </span>{" "}
-          👋
+          </span>
         </h1>
         <p className="text-slate mt-1.5 text-sm">Here&rsquo;s what&rsquo;s happening with your projects</p>
       </motion.div>
@@ -174,7 +174,14 @@ export default function ClientOverviewPage() {
                 <p className="text-xs text-slate py-4 text-center">No activity yet</p>
               ) : activityItems.map(item => (
                 <div key={item.id} className="pt-3 first:pt-0 flex items-start gap-3">
-                  <span className="text-base flex-shrink-0 mt-0.5">{item.icon}</span>
+                  <div className="flex-shrink-0 mt-0.5">
+                    {item.iconType === "done"
+                      ? <CheckCircle size={15} className="text-emerald-400" />
+                      : item.iconType === "active"
+                        ? <CircleDot size={15} className="text-cyan-400" />
+                        : <Circle size={15} className="text-amber-400" />
+                    }
+                  </div>
                   <div className="min-w-0">
                     <p className="text-xs text-silver leading-relaxed">{item.text}</p>
                     <p className="text-xs text-slate mt-0.5">{item.time}</p>

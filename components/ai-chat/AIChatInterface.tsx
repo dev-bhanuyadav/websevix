@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, SkipForward } from "lucide-react";
+import { Send, SkipForward, Lock, CheckCircle, Loader2, X, CreditCard } from "lucide-react";
 import { AIMessage } from "./AIMessage";
 import { UserMessage } from "./UserMessage";
 import { TypingIndicator } from "./TypingIndicator";
@@ -10,11 +10,15 @@ import { OrderSummaryCard } from "./OrderSummaryCard";
 import { OPENING_MESSAGE, type AIResponse } from "@/lib/aiPrompt";
 import { useAuth } from "@/hooks/useAuth";
 
+// ─── TEST MODE: ₹1 — change to 500 before going live ───────────
+const PLACEMENT_FEE = 1;
+const PLACEMENT_FEE_DISPLAY = `₹${PLACEMENT_FEE === 1 ? "1 (test)" : "500"}`;
+
 interface ChatMsg {
-  id:             string;
-  role:           "user" | "assistant";
-  content:        string;
-  showChips?:     string[];
+  id:              string;
+  role:            "user" | "assistant";
+  content:         string;
+  showChips?:      string[];
   showCheckboxes?: string[];
 }
 
@@ -36,11 +40,22 @@ function calcProgress(data: AIResponse["collectedData"]): number {
   return Math.round((filled / PROGRESS_FIELDS.length) * 100);
 }
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise(resolve => {
+    if (document.querySelector('script[src*="razorpay"]')) { resolve(true); return; }
+    const s = document.createElement("script");
+    s.src  = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload  = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
-  const { accessToken } = useAuth();
-  const sessionId       = useRef(`vix-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const scrollRef       = useRef<HTMLDivElement>(null);
-  const inputRef        = useRef<HTMLTextAreaElement>(null);
+  const { accessToken, user } = useAuth();
+  const sessionId  = useRef(`vix-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const scrollRef  = useRef<HTMLDivElement>(null);
+  const inputRef   = useRef<HTMLTextAreaElement>(null);
 
   const [messages,      setMessages]      = useState<ChatMsg[]>([]);
   const [input,         setInput]         = useState("");
@@ -49,9 +64,13 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
   const [isComplete,    setIsComplete]    = useState(false);
   const [isPlacing,     setIsPlacing]     = useState(false);
   const [payModal,      setPayModal]      = useState(false);
-  const [historyLock,   setHistoryLock]   = useState(false); // prevent sending while chips showing
+  const [historyLock,   setHistoryLock]   = useState(false);
+  const [payError,      setPayError]      = useState("");
 
-  // Init with opening message
+  // Preload Razorpay script
+  useEffect(() => { loadRazorpayScript(); }, []);
+
+  // Opening message
   useEffect(() => {
     setTimeout(() => {
       setMessages([{
@@ -76,54 +95,37 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
     setHistoryLock(false);
 
     const userMsg: ChatMsg = { id: genId(), role: "user", content: text };
-
     setMessages(prev => {
-      // Disable chips on last AI message
       const updated = prev.map((m, i) => i === prev.length - 1 && m.role === "assistant"
-        ? { ...m, showChips: undefined, showCheckboxes: undefined }
-        : m
-      );
+        ? { ...m, showChips: undefined, showCheckboxes: undefined } : m);
       return [...updated, userMsg];
     });
-
     setInput("");
     setIsTyping(true);
 
     try {
       const historyForAPI = messages.map(m => ({ role: m.role, content: m.content }));
-
-      const res = await fetch("/api/ai/consult", {
+      const res  = await fetch("/api/ai/consult", {
         method:  "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:  `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          sessionId:           sessionId.current,
-          userMessage:         text,
-          conversationHistory: historyForAPI,
-          collectedData,
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ sessionId: sessionId.current, userMessage: text, conversationHistory: historyForAPI, collectedData }),
       });
-
       const data: AIResponse = await res.json();
 
       setCollectedData(prev => ({ ...prev, ...data.collectedData }));
       if (data.isComplete) setIsComplete(true);
 
       const aiMsg: ChatMsg = {
-        id:              genId(),
-        role:            "assistant",
-        content:         data.message,
-        showChips:       data.showChips  ?? undefined,
-        showCheckboxes:  data.showCheckboxes ?? undefined,
+        id:             genId(),
+        role:           "assistant",
+        content:        data.message,
+        showChips:      data.showChips  ?? undefined,
+        showCheckboxes: data.showCheckboxes ?? undefined,
       };
-
       setMessages(prev => [...prev, aiMsg]);
       if (data.showChips || data.showCheckboxes) setHistoryLock(true);
-
     } catch {
-      setMessages(prev => [...prev, { id: genId(), role: "assistant", content: "Hmm, something went wrong on my end. Could you try again?" }]);
+      setMessages(prev => [...prev, { id: genId(), role: "assistant", content: "Hmm, something went wrong. Could you try again?" }]);
     } finally {
       setIsTyping(false);
     }
@@ -133,51 +135,102 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
   };
 
+  // ─── Full Razorpay checkout flow ────────────────────────────
   const handlePlaceOrder = async () => {
-    setPayModal(true);
-  };
-
-  const handlePaymentConfirm = async () => {
+    setPayError("");
     setIsPlacing(true);
-    setPayModal(false);
 
     try {
-      // Create payment order
-      const payRes = await fetch("/api/payment/create", {
+      const loaded = await loadRazorpayScript();
+      if (!loaded) throw new Error("Failed to load Razorpay.");
+
+      // Create Razorpay payment order
+      const payRes  = await fetch("/api/payment/create", {
         method:  "POST",
-        headers: { "Content-Type":"application/json", Authorization:`Bearer ${accessToken}` },
-        body:    JSON.stringify({ amount: 500, currency: "INR" }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body:    JSON.stringify({ amount: PLACEMENT_FEE, currency: "INR" }),
       });
       const payData = await payRes.json();
+      if (!payData.success) throw new Error(payData.error ?? "Payment init failed.");
 
-      // Create order in DB
-      const orderRes = await fetch("/api/orders", {
-        method:  "POST",
-        headers: { "Content-Type":"application/json", Authorization:`Bearer ${accessToken}` },
-        body:    JSON.stringify({
-          title:     collectedData.projectType ?? "Web Project",
-          aiSummary: collectedData,
-          paymentId: payData.order?.id ?? null,
-        }),
-      });
-      const orderData = await orderRes.json();
+      const rzpOrder = payData.order;
 
-      // Verify payment (mock for now)
-      await fetch("/api/payment/verify", {
-        method:  "POST",
-        headers: { "Content-Type":"application/json", Authorization:`Bearer ${accessToken}` },
-        body:    JSON.stringify({
-          razorpay_order_id:   payData.order?.id,
+      // If mock mode (no Razorpay keys), skip checkout and go direct
+      if (rzpOrder._mock) {
+        await finishOrderCreation({
+          razorpay_order_id:   rzpOrder.id,
           razorpay_payment_id: `pay_mock_${Date.now()}`,
           razorpay_signature:  "mock",
-          orderId:             orderData.order?.id,
-          _mock:               payData.order?._mock,
-        }),
+          _mock:               true,
+        });
+        return;
+      }
+
+      // Real Razorpay checkout
+      setIsPlacing(false); // let user interact with Razorpay popup
+      const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "";
+      const rzp = new window.Razorpay({
+        key:         rzpKey,
+        amount:      rzpOrder.amount,
+        currency:    rzpOrder.currency,
+        name:        "Websevix",
+        description: "Project Slot Booking Fee",
+        image:       "/logo.png",
+        order_id:    rzpOrder.id,
+        prefill: {
+          name:    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
+          email:   user?.email ?? "",
+        },
+        theme: { color: "#6366F1" },
+        modal: {
+          ondismiss: () => { setPayError("Payment cancelled."); },
+        },
+        handler: async (response: RazorpaySuccessResponse) => {
+          setIsPlacing(true);
+          await finishOrderCreation({
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature:  response.razorpay_signature,
+            _mock:               false,
+          });
+        },
+      });
+      rzp.open();
+
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Something went wrong.";
+      setPayError(msg);
+      setIsPlacing(false);
+    }
+  };
+
+  const finishOrderCreation = async (paymentInfo: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    _mock: boolean;
+  }) => {
+    try {
+      // Create order in DB
+      const orderRes  = await fetch("/api/orders", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body:    JSON.stringify({ title: collectedData.projectType ?? "Web Project", aiSummary: collectedData, paymentId: paymentInfo.razorpay_order_id }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderData.order) throw new Error("Order creation failed.");
+
+      // Verify payment
+      await fetch("/api/payment/verify", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body:    JSON.stringify({ ...paymentInfo, orderId: orderData.order.id }),
       });
 
-      onOrderPlaced?.(orderData.order?.orderId ?? "");
+      setPayModal(false);
+      onOrderPlaced?.(orderData.order.orderId ?? "");
     } catch (e) {
-      console.error(e);
+      setPayError(e instanceof Error ? e.message : "Order creation failed.");
     } finally {
       setIsPlacing(false);
     }
@@ -188,14 +241,19 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
   return (
     <div className="flex h-full gap-4 overflow-hidden">
       {/* ─── Chat Panel ─── */}
-      <div className="flex-1 flex flex-col min-w-0 rounded-2xl border border-white/[0.07] overflow-hidden"
-        style={{ background: "rgba(255,255,255,0.02)" }}>
-
-        {/* Chat header */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.06]"
-          style={{ background: "rgba(7,7,15,0.7)", backdropFilter: "blur(8px)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", boxShadow: "0 0 14px rgba(99,102,241,0.4)" }}>
+      <div
+        className="flex-1 flex flex-col min-w-0 rounded-2xl border border-white/[0.07] overflow-hidden"
+        style={{ background: "rgba(255,255,255,0.02)" }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.06]"
+          style={{ background: "rgba(7,7,15,0.7)", backdropFilter: "blur(8px)" }}
+        >
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+            style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", boxShadow: "0 0 14px rgba(99,102,241,0.4)" }}
+          >
             V
           </div>
           <div>
@@ -208,8 +266,11 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1 scroll-smooth"
-          style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}>
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-1 scroll-smooth"
+          style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}
+        >
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => msg.role === "assistant" ? (
               <AIMessage
@@ -229,17 +290,20 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
           </AnimatePresence>
         </div>
 
-        {/* Input */}
+        {/* Input area */}
         <div className="px-4 pb-4 pt-2 border-t border-white/[0.05]">
-          {isComplete && (
-            <motion.div
-              className="mb-3 p-3 rounded-xl text-sm text-emerald-300 border border-emerald-500/20 bg-emerald-500/[0.06]"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              ✅ All information collected! Click "Place Order" to proceed.
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {isComplete && (
+              <motion.div
+                className="mb-3 p-3 rounded-xl text-sm text-emerald-300 border border-emerald-500/20 bg-emerald-500/[0.06] flex items-center gap-2"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              >
+                <CheckCircle size={14} className="flex-shrink-0" />
+                All information collected! Click &quot;Place Order&quot; to proceed.
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-end gap-2">
             <textarea
               ref={inputRef}
@@ -284,7 +348,7 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
         <OrderSummaryCard
           data={collectedData}
           progress={progress}
-          onPlace={handlePlaceOrder}
+          onPlace={() => setPayModal(true)}
           isPlacing={isPlacing}
           isComplete={isComplete}
         />
@@ -295,63 +359,101 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
         {payModal && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/70 z-50"
+              className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setPayModal(false)}
+              onClick={() => !isPlacing && setPayModal(false)}
             />
-            <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            >
+            <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <motion.div
-                className="w-full max-w-sm rounded-2xl border border-white/[0.1] p-6 space-y-5"
-                style={{ background: "#0E0E1A", boxShadow: "0 32px 80px rgba(0,0,0,0.7)" }}
-                initial={{ scale: 0.95, y: 20 }}
+                className="w-full max-w-sm rounded-2xl border border-white/[0.1] overflow-hidden"
+                style={{ background: "#0D0D1A", boxShadow: "0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(99,102,241,0.15)" }}
+                initial={{ scale: 0.93, y: 24 }}
                 animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 10 }}
+                exit={{ scale: 0.93, y: 12 }}
+                transition={{ type: "spring", stiffness: 400, damping: 32 }}
               >
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}>
-                    <span className="text-xl">🎯</span>
+                {/* Modal header gradient */}
+                <div className="px-6 pt-6 pb-5" style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 100%)" }}>
+                  {!isPlacing && (
+                    <button
+                      onClick={() => setPayModal(false)}
+                      className="absolute top-4 right-4 p-1.5 rounded-lg text-slate hover:text-silver hover:bg-white/[0.06] transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                  <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", boxShadow: "0 8px 24px rgba(99,102,241,0.4)" }}>
+                    <CreditCard size={22} className="text-white" />
                   </div>
-                  <h3 className="font-display font-bold text-snow text-lg">Confirm Your Order</h3>
-                  <p className="text-sm text-slate mt-1">A one-time placement fee to confirm your project slot</p>
+                  <h3 className="font-display font-bold text-snow text-lg text-center">Confirm Your Order</h3>
+                  <p className="text-xs text-slate mt-1 text-center">One-time slot booking fee to confirm your project</p>
                 </div>
 
-                <div className="rounded-xl p-4 space-y-2 bg-white/[0.03] border border-white/[0.06]">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate">Project</span>
-                    <span className="text-snow font-medium">{collectedData.projectType ?? "Web Project"}</span>
+                <div className="px-6 pb-6 space-y-4">
+                  {/* Order summary */}
+                  <div className="rounded-xl p-4 space-y-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate">Project type</span>
+                      <span className="text-snow font-medium">{collectedData.projectType ?? "Web Project"}</span>
+                    </div>
+                    {collectedData.budget && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate">Your budget</span>
+                        <span className="text-snow font-medium">{collectedData.budget}</span>
+                      </div>
+                    )}
+                    {collectedData.timeline && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate">Timeline</span>
+                        <span className="text-snow font-medium">{collectedData.timeline}</span>
+                      </div>
+                    )}
+                    <div className="h-px bg-white/[0.06]" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate">Placement fee</span>
+                      <span className="font-display font-bold text-snow text-lg">{PLACEMENT_FEE_DISPLAY}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate">Budget</span>
-                    <span className="text-snow font-medium">{collectedData.budget ?? "—"}</span>
-                  </div>
-                  <div className="h-px bg-white/[0.05] my-1" />
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate">Placement Fee</span>
-                    <span className="font-display font-bold text-snow">₹500</span>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
+                  {/* Error */}
+                  <AnimatePresence>
+                    {payError && (
+                      <motion.p className="text-xs text-red-400 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        {payError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Pay button */}
                   <motion.button
-                    onClick={handlePaymentConfirm}
-                    className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+                    onClick={handlePlaceOrder}
+                    disabled={isPlacing}
+                    className="w-full py-3.5 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-60"
                     style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    Pay ₹500 & Place Order
+                    {isPlacing ? (
+                      <><Loader2 size={16} className="animate-spin" /> Processing…</>
+                    ) : (
+                      <><CreditCard size={16} /> Pay {PLACEMENT_FEE_DISPLAY} &amp; Place Order</>
+                    )}
                   </motion.button>
-                  <button onClick={() => setPayModal(false)} className="w-full py-2 text-sm text-slate hover:text-silver transition-colors">
+
+                  <button
+                    onClick={() => setPayModal(false)}
+                    disabled={isPlacing}
+                    className="w-full py-2 text-sm text-slate hover:text-silver transition-colors disabled:opacity-50"
+                  >
                     Cancel
                   </button>
-                </div>
 
-                <p className="text-xs text-center text-slate">
-                  🔒 Secured by Razorpay · No subscription
-                </p>
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-slate">
+                    <Lock size={11} />
+                    <span>Secured by Razorpay · SSL encrypted</span>
+                  </div>
+                </div>
               </motion.div>
             </motion.div>
           </>

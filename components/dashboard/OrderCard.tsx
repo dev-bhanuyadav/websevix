@@ -111,7 +111,7 @@ export function OrderCard({ order, index = 0 }: OrderCardProps) {
               View Details
             </motion.button>
           </Link>
-          <Link href={`/dashboard/client/orders/${order.orderId}?tab=chat`}>
+          <Link href={`/dashboard/client/orders/${order.orderId}/chat`}>
             <motion.button
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-colors"
               whileTap={{ scale: 0.96 }}
