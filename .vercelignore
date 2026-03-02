@@ -1,0 +1,21 @@
+# PHP mailer files (server-side only, not needed in Vercel deployment)
+php-mailer/
+
+# Scripts (CLI utilities, not part of the app)
+scripts/
+
+# Documentation
+*.md
+!README.md
+
+# Local environment
+.env.local
+.env.*.local
+
+# IDE
+.cursor/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
