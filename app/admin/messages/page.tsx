@@ -1,0 +1,439 @@
+"use client";
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  MessageSquare,
+  Send,
+  Paperclip,
+  Loader2,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+
+type OrderStatus = "pending_review" | "in_progress" | "completed" | "cancelled";
+
+const STATUS_COLORS: Record<OrderStatus, { label: string; cls: string }> = {
+  pending_review: { label: "Pending Review", cls: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+  in_progress: { label: "In Progress", cls: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+  completed: { label: "Completed", cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+  cancelled: { label: "Cancelled", cls: "text-red-400 bg-red-500/10 border-red-500/20" },
+};
+
+interface OrderClient {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+interface OrderConversation {
+  _id: string;
+  orderId: string;
+  status: OrderStatus;
+  clientId: OrderClient | null;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  unreadCount?: number;
+  title?: string;
+  aiSummary?: { projectType?: string };
+}
+
+interface ChatMessage {
+  _id: string;
+  content: string;
+  senderRole: "client" | "admin";
+  createdAt: string;
+  fileUrl?: string;
+  fileName?: string;
+}
+
+interface MessagesResponse {
+  messages: ChatMessage[];
+}
+
+interface OrdersResponse {
+  orders: OrderConversation[];
+}
+
+export default function AdminMessagesPage() {
+  const { accessToken } = useAuth();
+  const [orders, setOrders] = useState<OrderConversation[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedOrder = orders.find((o) => o._id === selectedOrderId) ?? null;
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoadingOrders(true);
+    fetch("/api/admin/orders?limit=50", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => r.json())
+      .then((d: OrdersResponse) => setOrders(d.orders ?? []))
+      .catch(console.error)
+      .finally(() => setLoadingOrders(false));
+  }, [accessToken]);
+
+  const fetchMessages = useCallback(
+    (orderId: string) => {
+      if (!accessToken) return;
+      setLoadingMessages(true);
+      fetch(`/api/messages/${orderId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+        .then((r) => r.json())
+        .then((d: MessagesResponse) => {
+          setMessages(d.messages ?? []);
+        })
+        .catch(console.error)
+        .finally(() => setLoadingMessages(false));
+    },
+    [accessToken]
+  );
+
+  useEffect(() => {
+    if (!selectedOrderId) return;
+    fetchMessages(selectedOrderId);
+  }, [selectedOrderId, fetchMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!accessToken || !selectedOrderId || !inputText.trim()) return;
+    const text = inputText.trim();
+    setInputText("");
+    setSending(true);
+
+    const optimistic: ChatMessage = {
+      _id: `opt-${Date.now()}`,
+      content: text,
+      senderRole: "admin",
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    try {
+      const res = await fetch(`/api/messages/${selectedOrderId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: text, senderRole: "admin" }),
+      });
+      const d = (await res.json()) as { message?: ChatMessage };
+      if (d.message) {
+        setMessages((prev) =>
+          prev.map((m) => (m._id === optimistic._id ? d.message! : m))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  };
+
+  const clientName = (o: OrderConversation) =>
+    o.clientId ? `${o.clientId.firstName} ${o.clientId.lastName}` : "Unknown";
+
+  const filtered = orders.filter((o) => {
+    if (!search) return true;
+    const name = clientName(o).toLowerCase();
+    return (
+      name.includes(search.toLowerCase()) ||
+      o.orderId.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="h-[calc(100vh-7rem)] flex rounded-2xl overflow-hidden"
+      style={{
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.07)",
+      }}
+    >
+      {/* Left panel: conversation list */}
+      <div
+        className="w-80 flex-shrink-0 flex flex-col overflow-hidden"
+        style={{ borderRight: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        {/* Header */}
+        <div
+          className="px-4 py-4 flex-shrink-0"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <h2 className="text-sm font-semibold font-display text-snow mb-3">Conversations</h2>
+          <div className="relative">
+            <Search
+              size={13}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Search orders..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 text-xs text-snow rounded-lg outline-none placeholder:text-slate"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto">
+          {loadingOrders ? (
+            <div className="p-4 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-16 rounded-xl animate-pulse"
+                  style={{ background: "rgba(255,255,255,0.05)" }}
+                />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
+              <MessageSquare size={28} className="text-slate" />
+              <p className="text-xs text-slate text-center">No conversations</p>
+            </div>
+          ) : (
+            filtered.map((o) => {
+              const isSelected = selectedOrderId === o._id;
+              return (
+                <button
+                  key={o._id}
+                  onClick={() => setSelectedOrderId(o._id)}
+                  className="w-full text-left px-4 py-3 transition-all relative"
+                  style={{
+                    background: isSelected
+                      ? "rgba(99,102,241,0.1)"
+                      : "transparent",
+                    borderLeft: isSelected ? "2px solid #6366F1" : "2px solid transparent",
+                    borderBottom: "1px solid rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 text-[11px] font-bold text-white"
+                        style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
+                      >
+                        {clientName(o)
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-snow truncate">
+                          {clientName(o)}
+                        </p>
+                        <p className="text-[11px] font-mono" style={{ color: "#818CF8" }}>
+                          #{o.orderId}
+                        </p>
+                      </div>
+                    </div>
+                    {o.unreadCount ? (
+                      <span
+                        className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white"
+                        style={{ background: "#EF4444" }}
+                      >
+                        {o.unreadCount > 9 ? "9+" : o.unreadCount}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-slate truncate pl-9">
+                    {o.aiSummary?.projectType ?? o.title ?? "No subject"}
+                  </p>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Right panel: chat */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {!selectedOrder ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 opacity-60">
+            <MessageSquare size={48} className="text-slate" />
+            <p className="text-sm text-slate font-medium">Select a conversation</p>
+            <p className="text-xs text-slate">Choose an order from the left panel</p>
+          </div>
+        ) : (
+          <>
+            {/* Chat header */}
+            <div
+              className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-snow">
+                    {clientName(selectedOrder)}
+                  </p>
+                  <p className="text-xs font-mono" style={{ color: "#818CF8" }}>
+                    #{selectedOrder.orderId}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[selectedOrder.status]?.cls ?? ""}`}
+              >
+                {STATUS_COLORS[selectedOrder.status]?.label ?? selectedOrder.status}
+              </span>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {loadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 size={24} className="text-slate animate-spin" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
+                  <MessageSquare size={32} className="text-slate" />
+                  <p className="text-sm text-slate">No messages yet</p>
+                </div>
+              ) : (
+                <AnimatePresence initial={false}>
+                  {messages.map((msg) => {
+                    const isAdmin = msg.senderRole === "admin";
+                    return (
+                      <motion.div
+                        key={msg._id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className="max-w-[70%] rounded-2xl px-4 py-2.5"
+                          style={
+                            isAdmin
+                              ? {
+                                  background: "linear-gradient(135deg, rgba(99,102,241,0.35), rgba(79,70,229,0.35))",
+                                  border: "1px solid rgba(99,102,241,0.3)",
+                                  borderBottomRightRadius: "4px",
+                                }
+                              : {
+                                  background: "rgba(255,255,255,0.06)",
+                                  border: "1px solid rgba(255,255,255,0.1)",
+                                  borderBottomLeftRadius: "4px",
+                                }
+                          }
+                        >
+                          {msg.fileUrl && (
+                            <a
+                              href={msg.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-indigo-300 underline block mb-1"
+                            >
+                              📎 {msg.fileName ?? "File"}
+                            </a>
+                          )}
+                          <p className="text-sm text-snow leading-relaxed">{msg.content}</p>
+                          <p className="text-[10px] text-slate mt-1 text-right">
+                            {formatTime(msg.createdAt)}
+                            {isAdmin && <span className="ml-1 text-indigo-400">· Admin</span>}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div
+              className="px-4 py-3 flex-shrink-0"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <div
+                className="flex items-end gap-2 rounded-xl p-2"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                }}
+              >
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-shrink-0 p-2 rounded-lg text-slate hover:text-snow hover:bg-white/10 transition-all"
+                >
+                  <Paperclip size={15} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={() => {}}
+                />
+                <textarea
+                  rows={1}
+                  placeholder="Type a message... (Enter to send)"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 text-sm text-snow bg-transparent outline-none resize-none placeholder:text-slate leading-relaxed py-1 max-h-28"
+                  style={{ minHeight: "24px" }}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={sending || !inputText.trim()}
+                  className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-all disabled:opacity-40 hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg, #6366F1, #4F46E5)" }}
+                >
+                  {sending ? (
+                    <Loader2 size={14} className="animate-spin text-white" />
+                  ) : (
+                    <Send size={13} className="text-white" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}

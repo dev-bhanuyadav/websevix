@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Send, Paperclip, Phone, Video,
+  ArrowLeft, Send, Paperclip,
   MoreVertical, CheckCheck, Check, FileText,
   Download, X, Image as ImageIcon, Loader2,
   ShieldCheck,
@@ -273,7 +273,7 @@ export default function OrderChatPage() {
   useEffect(() => {
     fetchMessages();
     // Poll every 5s
-    pollRef.current = setInterval(() => fetchMessages(true), 5000);
+    pollRef.current = setInterval(() => fetchMessages(true), 500);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchMessages]);
 
@@ -395,12 +395,6 @@ export default function OrderChatPage() {
         </div>
 
         <div className="flex items-center gap-1">
-          <motion.button className="p-2 rounded-xl text-slate hover:text-snow hover:bg-white/[0.05] transition-colors" whileTap={{ scale: 0.92 }}>
-            <Phone size={16} />
-          </motion.button>
-          <motion.button className="p-2 rounded-xl text-slate hover:text-snow hover:bg-white/[0.05] transition-colors" whileTap={{ scale: 0.92 }}>
-            <Video size={16} />
-          </motion.button>
           <motion.button className="p-2 rounded-xl text-slate hover:text-snow hover:bg-white/[0.05] transition-colors" whileTap={{ scale: 0.92 }}>
             <MoreVertical size={16} />
           </motion.button>

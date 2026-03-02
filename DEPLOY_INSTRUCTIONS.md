@@ -28,7 +28,6 @@ GitHub Git push ke liye password nahi leta — **Personal Access Token (PAT)** u
 **PowerShell ya Command Prompt** kholkar project folder mein jayein:
 
 ```powershell
-cd "c:\Users\Administrator\Downloads\My Projects\Websevix"
 ```
 
 Phir ye commands **ek-ek karke** chalaayein:

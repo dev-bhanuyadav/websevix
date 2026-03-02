@@ -7,7 +7,7 @@ export interface IUser {
   firstName: string;
   lastName: string;
   phone: string;
-  role: "client" | "developer";
+  role: "client" | "developer" | "admin";
   avatar?: string | null;
   isVerified: boolean;
   isActive: boolean;
@@ -25,7 +25,7 @@ const UserSchema = new Schema<IUser>(
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     phone: { type: String, required: true },
-    role: { type: String, enum: ["client", "developer"], required: true },
+    role: { type: String, enum: ["client", "developer", "admin"], required: true },
     avatar: { type: String, default: null },
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
