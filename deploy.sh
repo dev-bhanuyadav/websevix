@@ -47,6 +47,12 @@ echo "→ Copying static assets..."
 cp -r .next/static   .next/standalone/.next/static
 cp -r public         .next/standalone/public
 
+# ── Copy .env so Next.js can load it (standalone runs from .next/standalone) ─
+if [ -f "$APP_DIR/.env.production" ]; then
+  cp "$APP_DIR/.env.production" "$APP_DIR/.next/standalone/.env.production"
+  echo "→ Copied .env.production to standalone"
+fi
+
 # ── Create log dir ────────────────────────────────────────────
 mkdir -p /var/log/websevix
 

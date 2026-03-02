@@ -2,10 +2,10 @@ module.exports = {
   apps: [
     {
       name: "websevix",
-      script: ".next/standalone/server.js",
-      cwd: "/var/www/websevix",
-      instances: "max",          // use all 4 vCPU cores
-      exec_mode: "cluster",
+      script: "server.js",
+      cwd: "/var/www/websevix/.next/standalone",
+      instances: 1,
+      exec_mode: "fork",
       max_memory_restart: "1500M",
       env: {
         NODE_ENV: "production",
