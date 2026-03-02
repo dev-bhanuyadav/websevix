@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * GET /api/payments/requests?orderId=xxx
  * Client fetches pending payment requests for their order.

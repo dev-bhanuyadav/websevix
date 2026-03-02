@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * GET /api/mandate/callback
  * Razorpay redirects here after UPI AutoPay / recurring mandate setup.

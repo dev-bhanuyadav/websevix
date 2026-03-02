@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * POST /api/payments/requests/[requestId]/pay
  * Step 1 — create Razorpay order for a payment request

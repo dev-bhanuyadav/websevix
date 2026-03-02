@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { cookies } from "next/headers";
 import { connectDB } from "@/lib/mongodb";
 import { RefreshToken } from "@/models/RefreshToken";
