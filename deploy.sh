@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────
-#  Websevix — VPS Deployment Script
+#  Websevix — VPS Deployment Script (BULLETPROOF VERSION)
 #  Run this on your VPS as root or sudo user
 #  Usage: bash deploy.sh
 # ─────────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@ BRANCH="main"
 
 echo ""
 echo "══════════════════════════════════════════"
-echo "  Websevix VPS Deploy"
+echo "  Websevix VPS Deploy (Bulletproof)"
 echo "══════════════════════════════════════════"
 
 # ── Pull latest code ──────────────────────────────────────────
@@ -26,12 +26,47 @@ else
   cd "$APP_DIR"
 fi
 
-# ── Copy .env.production if not present ──────────────────────
+# ── Check/Create .env.production ─────────────────────────────
 if [ ! -f "$APP_DIR/.env.production" ]; then
   echo ""
-  echo "⚠  .env.production not found at $APP_DIR/.env.production"
-  echo "   Please create it (see VPS_DEPLOY_GUIDE.md) and re-run."
+  echo "⚠  .env.production not found. Creating basic template..."
+  cat > "$APP_DIR/.env.production" << 'EOF'
+# Websevix Environment Variables
+NODE_ENV=production
+NEXTAUTH_URL=https://websevix.com
+
+# Database (REQUIRED - Add your MongoDB connection string)
+MONGODB_URI=mongodb+srv://your-connection-string-here
+
+# Authentication (Auto-generated)
+JWT_SECRET=your-jwt-secret-here
+NEXTAUTH_SECRET=auto-generated-below
+
+# Razorpay (Optional - Mock mode if not set)
+# RAZORPAY_KEY_ID=rzp_test_your_key
+# RAZORPAY_KEY_SECRET=your_secret
+# NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_your_key
+EOF
+  echo "   📝 Template created. Edit $APP_DIR/.env.production with your values."
+  echo "   ⚠  At minimum, set MONGODB_URI and re-run deploy."
   exit 1
+fi
+
+# Auto-fix missing environment variables
+echo "→ Checking environment variables..."
+if ! grep -q "NODE_ENV=" .env.production; then
+  echo "NODE_ENV=production" >> .env.production
+  echo "   ✓ Added NODE_ENV=production"
+fi
+
+if ! grep -q "NEXTAUTH_SECRET=" .env.production; then
+  echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" >> .env.production
+  echo "   ✓ Added NEXTAUTH_SECRET"
+fi
+
+if ! grep -q "NEXTAUTH_URL=" .env.production; then
+  echo "NEXTAUTH_URL=https://websevix.com" >> .env.production
+  echo "   ✓ Added NEXTAUTH_URL"
 fi
 
 # ── Install dependencies (incl. dev — needed for Tailwind/build) ──
