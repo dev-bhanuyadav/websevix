@@ -29,7 +29,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingOrders, setPendingOrders] = useState(0);
   const { accessToken, isLoading } = useAuth();
 
-  const pageTitle = pathname ? ADMIN_PAGE_TITLES[pathname] ?? pathname.replace("/admin", "").replace(/^\//, "") || "Dashboard" : "Dashboard";
+  const pageTitle = pathname
+    ? (ADMIN_PAGE_TITLES[pathname] ?? (pathname.replace("/admin", "").replace(/^\//, "") || "Dashboard"))
+    : "Dashboard";
 
   useEffect(() => {
     if (!accessToken) return;
