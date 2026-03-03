@@ -240,6 +240,7 @@ function AdminOrdersInner() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="space-y-6"
+      style={{ background: "transparent", color: "#F8FAFC" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">

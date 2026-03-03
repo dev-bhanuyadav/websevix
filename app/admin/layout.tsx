@@ -1,19 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import { NewOrderToastProvider } from "@/components/admin/NewOrderToast";
 import { useAuth } from "@/hooks/useAuth";
+
+const ADMIN_PAGE_TITLES: Record<string, string> = {
+  "/admin": "Dashboard",
+  "/admin/orders": "Orders",
+  "/admin/users": "Users",
+  "/admin/messages": "Messages",
+  "/admin/notifications": "Notifications",
+  "/admin/payments": "Payments",
+  "/admin/services": "Services",
+  "/admin/analytics": "Analytics",
+  "/admin/settings": "Settings",
+};
 
 interface DashboardStats {
   pendingReview: number;
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [mobileOpen,    setMobileOpen]    = useState(false);
   const [pendingOrders, setPendingOrders] = useState(0);
   const { accessToken, isLoading } = useAuth();
+
+  const pageTitle = pathname ? ADMIN_PAGE_TITLES[pathname] ?? pathname.replace("/admin", "").replace(/^\//, "") || "Dashboard" : "Dashboard";
 
   useEffect(() => {
     if (!accessToken) return;
@@ -44,15 +60,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <NewOrderToastProvider>
-      <div className="flex h-screen overflow-hidden bg-[#060608]">
+      <div
+        className="flex h-screen overflow-hidden"
+        style={{ background: "#060608" }}
+      >
         <AdminSidebar
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
           pendingOrdersCount={pendingOrders}
         />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <AdminTopBar onMobileMenuOpen={() => setMobileOpen(true)} />
-          <main className="flex-1 overflow-auto p-6">{children}</main>
+        <div className="flex flex-col flex-1 overflow-hidden" style={{ background: "#060608" }}>
+          <AdminTopBar title={pageTitle} onMobileMenuOpen={() => setMobileOpen(true)} />
+          <main className="flex-1 overflow-auto p-6" style={{ background: "#060608", color: "#F8FAFC" }}>
+            {children}
+          </main>
         </div>
       </div>
     </NewOrderToastProvider>

@@ -49,9 +49,10 @@ export default function AdminTopBar({
       className="sticky top-0 z-30 flex items-center gap-3 px-4 lg:px-6"
       style={{
         height: 64,
-        background: "rgba(6,6,8,0.82)",
+        background: "#0a0a12",
         backdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        color: "#F8FAFC",
       }}
     >
       {/* Mobile menu button */}
@@ -62,21 +63,14 @@ export default function AdminTopBar({
         <Menu size={18} />
       </button>
 
-      {/* Greeting */}
-      <div className="flex flex-col min-w-0">
-        <span className="text-xs text-slate leading-tight hidden sm:block">
+      {/* Greeting + page title */}
+      <div className="flex flex-col min-w-0" style={{ color: "#F8FAFC" }}>
+        <span className="text-xs leading-tight hidden sm:block" style={{ color: "#64748B" }}>
           {greeting}, Admin&nbsp;👑
         </span>
-        {title && (
-          <span className="text-sm font-semibold font-display text-snow leading-tight truncate">
-            {title}
-          </span>
-        )}
-        {!title && (
-          <span className="text-sm font-semibold font-display text-snow leading-tight">
-            Dashboard
-          </span>
-        )}
+        <span className="text-sm font-semibold leading-tight truncate" style={{ color: "#F8FAFC" }}>
+          {title ?? "Dashboard"}
+        </span>
       </div>
 
       {/* Spacer */}
