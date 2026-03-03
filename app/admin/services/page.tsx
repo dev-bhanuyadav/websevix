@@ -82,7 +82,7 @@ export default function AdminServicesPage() {
     <motion.div variants={fadeUp} initial="hidden" animate="visible" className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold font-display text-snow">Services & Subscriptions</h1>
-        <p className="text-sm text-slate mt-1">Manage recurring services, autopay mandates, and client billing</p>
+        <p className="text-sm text-slate mt-1">Manage services and monthly client billing</p>
       </div>
 
       {/* Tab Bar */}

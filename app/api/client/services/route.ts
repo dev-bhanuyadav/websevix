@@ -4,7 +4,6 @@ import { connectDB } from "@/lib/mongodb";
 import { jsonResponse } from "@/lib/api";
 import { verifyAccessToken } from "@/lib/jwt";
 import { ClientService } from "@/models/ClientService";
-import { Mandate } from "@/models/Mandate";
 import { ServiceInvoice } from "@/models/ServiceInvoice";
 
 export async function GET(request: NextRequest) {
@@ -15,17 +14,23 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const [services, mandate, invoices] = await Promise.all([
+    const [services, invoices] = await Promise.all([
       ClientService.find({ clientId: payload.userId })
         .populate("serviceId", "name description category icon basePrice billingCycle features isMandatory")
         .sort({ createdAt: -1 })
         .lean(),
-      Mandate.findOne({ clientId: payload.userId, status: { $in: ["active", "authenticated"] } }).lean(),
       ServiceInvoice.find({ clientId: payload.userId })
         .sort({ createdAt: -1 })
         .limit(12)
         .lean(),
     ]);
+
+    const now = new Date();
+    const servicesWithDue = services.map(s => {
+      const next = s.nextBillingDate ? new Date(s.nextBillingDate) : null;
+      const isDue = s.status === "active" && next && next <= now;
+      return { ...s, isDue: !!isDue };
+    });
 
     const active = services.filter(s => s.status === "active");
     const monthlyTotal = active.reduce((sum, s) => {
@@ -33,7 +38,7 @@ export async function GET(request: NextRequest) {
       return sum + (s.customPrice ?? svc.basePrice);
     }, 0);
 
-    return jsonResponse({ services, mandate, invoices, monthlyTotal });
+    return jsonResponse({ services: servicesWithDue, invoices, monthlyTotal });
   } catch (e) {
     console.error("[client/services GET]", e);
     return jsonResponse({ error: "Failed to fetch services" }, 500);

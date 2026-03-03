@@ -5,11 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, CreditCard, CheckCircle2, XCircle, Clock, AlertTriangle,
-  FileText, Loader2, X, Zap,
+  FileText, Loader2, X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type SubStatus = "pending_acceptance" | "active" | "paused" | "cancelled" | "rejected";
 type InvoiceStatus = "draft" | "sent" | "paid" | "failed" | "refunded";
@@ -21,12 +19,8 @@ interface PopulatedService {
 }
 interface ClientSub {
   _id: string; serviceId: PopulatedService; customPrice?: number | null;
-  status: SubStatus; isMandatory: boolean;
+  status: SubStatus; isMandatory: boolean; isDue?: boolean;
   nextBillingDate?: string; billingStartDate?: string; createdAt: string;
-}
-interface IMandate {
-  _id: string; status: string; paymentMethod?: string;
-  maskedAccount?: string; maxAmount: number; activatedAt?: string;
 }
 interface IInvoice {
   _id: string; invoiceNo: string; month: string; total: number;
@@ -34,14 +28,12 @@ interface IInvoice {
   paidAt?: string; createdAt: string;
 }
 
-// Razorpay global types are in types/razorpay.d.ts
-
 const STATUS_CFG: Record<SubStatus, { icon: React.ReactNode; label: string; color: string; bg: string }> = {
   pending_acceptance: { icon: <Clock size={12} />,         label: "Awaiting Response", color: "#FBBF24", bg: "rgba(251,191,36,0.1)" },
   active:             { icon: <CheckCircle2 size={12} />,  label: "Active",            color: "#34D399", bg: "rgba(52,211,153,0.1)" },
   paused:             { icon: <AlertTriangle size={12} />, label: "Paused",            color: "#94A3B8", bg: "rgba(148,163,184,0.1)" },
   cancelled:          { icon: <XCircle size={12} />,       label: "Cancelled",         color: "#F87171", bg: "rgba(248,113,113,0.1)" },
-  rejected:           { icon: <XCircle size={12} />,       label: "Rejected",          color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
+  rejected:           { icon: <XCircle size={12} />,       label: "Rejected",           color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
 };
 
 const INV_CFG: Record<InvoiceStatus, { label: string; color: string }> = {
@@ -57,8 +49,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   security: "🔒", domain: "🌐", integration: "⚡", support: "💬", custom: "📦",
 };
 
-// ─── Load Razorpay script ─────────────────────────────────────────────────────
-
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window !== "undefined" && window.Razorpay) { resolve(true); return; }
@@ -70,18 +60,13 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
-// ─── Inner Page (needs useSearchParams — wrapped in Suspense below) ───────────
-
 function ClientServicesInner() {
-  const { accessToken }  = useAuth();
-  const searchParams     = useSearchParams();
-  const [subs,         setSubs]         = useState<ClientSub[]>([]);
-  const [mandate,      setMandate]       = useState<IMandate | null>(null);
-  const [invoices,     setInvoices]      = useState<IInvoice[]>([]);
-  const [monthlyTotal, setMonthlyTotal]  = useState(0);
-  const [loading,      setLoading]       = useState(true);
-  const [settingUp,    setSettingUp]     = useState(false);
-  const [autopayMsg,   setAutopayMsg]    = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const { accessToken } = useAuth();
+  const [subs, setSubs] = useState<ClientSub[]>([]);
+  const [invoices, setInvoices] = useState<IInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [paymentMsg, setPaymentMsg] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const rzpScriptLoaded = useRef(false);
 
   const load = useCallback(async () => {
@@ -90,39 +75,19 @@ function ClientServicesInner() {
     try {
       const r = await fetch("/api/client/services", { headers: { Authorization: `Bearer ${accessToken}` } });
       const d = await r.json();
-      setSubs(d.services   ?? []);
-      setMandate(d.mandate  ?? null);
+      setSubs(d.services ?? []);
       setInvoices(d.invoices ?? []);
-      setMonthlyTotal(d.monthlyTotal ?? 0);
     } finally { setLoading(false); }
   }, [accessToken]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Handle redirect-back from Razorpay callback (fallback path)
-  useEffect(() => {
-    const status = searchParams.get("autopay");
-    if (status === "success") {
-      setAutopayMsg({ type: "success", text: "Autopay activated! ₹2 verified. Monthly billing up to ₹15,000." });
-      load();
-    } else if (status === "failed") {
-      setAutopayMsg({ type: "error", text: "Autopay setup was cancelled or failed. Try again anytime." });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Pre-load Razorpay script once services are fetched
   useEffect(() => {
     if (!rzpScriptLoaded.current && subs.length > 0) {
       rzpScriptLoaded.current = true;
       loadRazorpayScript();
     }
   }, [subs.length]);
-
-  const handleAccept = async (id: string) => {
-    await fetch(`/api/client/services/${id}/accept`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });
-    load();
-  };
 
   const handleReject = async (id: string) => {
     if (!confirm("Decline this service?")) return;
@@ -131,96 +96,93 @@ function ClientServicesInner() {
   };
 
   const handleCancel = async (id: string, name: string) => {
-    if (!confirm(`Cancel "${name}"? This will stop future billing for this service.`)) return;
+    if (!confirm(`Cancel "${name}"? You will not be charged for future months.`)) return;
     await fetch(`/api/client/services/${id}/cancel`, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });
     load();
   };
 
-  const setupAutopay = async () => {
-    setSettingUp(true);
-    setAutopayMsg(null);
+  const openPayment = async (clientServiceId: string, type: "first" | "renewal", amountRupees: number) => {
+    setPayingId(clientServiceId);
+    setPaymentMsg(null);
     try {
       const loaded = await loadRazorpayScript();
-
-      const r = await fetch("/api/mandate/create", {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const url = type === "first"
+        ? `/api/client/services/${clientServiceId}/create-payment?type=first`
+        : `/api/client/services/${clientServiceId}/create-payment?type=renewal`;
+      const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });
       const d = await r.json();
 
-      if (d.alreadyActive) { load(); return; }
+      if (d.error) {
+        setPaymentMsg({ type: "error", text: d.error });
+        return;
+      }
 
-      // Mock mode — keys not configured, auto-activated
-      if (d.mock) {
-        setAutopayMsg({ type: "success", text: "Autopay activated successfully!" });
+      if (d._mock) {
+        setPaymentMsg({ type: "success", text: type === "first" ? "Service activated (mock)." : "Payment recorded (mock)." });
+        await fetch("/api/client/services/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            razorpay_order_id: d.orderId,
+            razorpay_payment_id: "mock_pay_" + Date.now(),
+            razorpay_signature: "mock",
+            _mock: true,
+            notes: d.notes,
+          }),
+        });
         load();
         return;
       }
 
-      if (d.error || !d.orderId) {
-        setAutopayMsg({
-          type: "error",
-          text: d.error ?? "Could not initiate autopay. Payments can still be made manually from chat.",
-        });
-        return;
-      }
-
       if (!loaded || !window.Razorpay) {
-        setAutopayMsg({ type: "error", text: "Payment gateway unavailable. Please try again." });
+        setPaymentMsg({ type: "error", text: "Payment gateway unavailable." });
         return;
       }
 
-      // ── Razorpay Subscription checkout (UPI AutoPay mandate flow) ─────────
-      // Opens Razorpay checkout → user selects UPI → enters UPI ID →
-      // mandate request sent to UPI app → user approves (₹15,000 limit) →
-      // ₹2 auth charge deducted → monthly auto-billing starts next cycle.
       const rzp = new window.Razorpay({
-        key:             d.keyId,
-        subscription_id: d.subscriptionId,
-        name:            "Websevix Autopay",
-        description:     `Enter your UPI ID • ₹2 auth now • ₹${(d.monthlyTotal ?? 0).toLocaleString("en-IN")}/month auto from next cycle`,
-        prefill:         d.prefill,
-        theme:           { color: "#6366F1" },
-        handler: async (response: RazorpaySuccessResponse) => {
+        key:     d.keyId,
+        amount:  d.amount,
+        currency: d.currency || "INR",
+        order_id: d.orderId,
+        name:    "Websevix",
+        description: type === "first" ? "Pay for first month" : "Pay for next month",
+        theme:   { color: "#6366F1" },
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           try {
-            const vr = await fetch("/api/mandate/verify", {
+            const vr = await fetch("/api/client/services/verify-payment", {
               method:  "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
               body:    JSON.stringify({
-                razorpay_payment_id:       response.razorpay_payment_id,
-                razorpay_subscription_id:  response.razorpay_subscription_id,
-                razorpay_signature:        response.razorpay_signature,
+                razorpay_payment_id:  response.razorpay_payment_id,
+                razorpay_order_id:    response.razorpay_order_id,
+                razorpay_signature:   response.razorpay_signature,
               }),
             });
             const vd = await vr.json();
             if (vd.success) {
-              setAutopayMsg({ type: "success", text: `Autopay activated! ₹2 verified. Monthly auto-billing of ₹${(d.monthlyTotal ?? 0).toLocaleString("en-IN")} starts next cycle.` });
+              setPaymentMsg({ type: "success", text: vd.message || "Payment successful." });
               load();
             } else {
-              setAutopayMsg({ type: "error", text: vd.error ?? "Verification failed. Please contact support." });
+              setPaymentMsg({ type: "error", text: vd.error || "Verification failed." });
             }
           } catch {
-            setAutopayMsg({ type: "error", text: "Verification error. Please contact support." });
+            setPaymentMsg({ type: "error", text: "Verification error." });
           } finally {
-            setSettingUp(false);
+            setPayingId(null);
           }
         },
-        modal: { ondismiss: () => setSettingUp(false) },
+        modal: { ondismiss: () => setPayingId(null) },
       });
       rzp.open();
     } catch {
-      setAutopayMsg({
-        type: "error",
-        text: "Setup failed. You can still make payments manually from the chat.",
-      });
-      setSettingUp(false);
+      setPaymentMsg({ type: "error", text: "Could not start payment." });
+      setPayingId(null);
     }
   };
 
-  const pending     = subs.filter(s => s.status === "pending_acceptance");
-  const active      = subs.filter(s => s.status === "active");
-  const others      = subs.filter(s => !["pending_acceptance", "active"].includes(s.status));
-  const nextBill    = active.map(s => s.nextBillingDate).filter(Boolean).sort()[0];
+  const pending  = subs.filter(s => s.status === "pending_acceptance");
+  const active   = subs.filter(s => s.status === "active");
+  const others   = subs.filter(s => !["pending_acceptance", "active"].includes(s.status));
   const hasServices = subs.length > 0;
 
   if (loading) return (
@@ -235,58 +197,42 @@ function ClientServicesInner() {
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-display text-snow">My Services</h1>
-        <p className="text-sm text-slate mt-1">Manage your active services and billing</p>
+        <p className="text-sm text-slate mt-1">Pay for first month to activate, then pay each month when due</p>
       </div>
 
-      {/* Autopay message toast */}
       <AnimatePresence>
-        {autopayMsg && (
+        {paymentMsg && (
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm"
             style={{
-              background: autopayMsg.type === "success" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
-              border:     autopayMsg.type === "success" ? "1px solid rgba(52,211,153,0.25)" : "1px solid rgba(248,113,113,0.25)",
-              color:      autopayMsg.type === "success" ? "#34D399" : "#F87171",
+              background: paymentMsg.type === "success" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+              border:     paymentMsg.type === "success" ? "1px solid rgba(52,211,153,0.25)" : "1px solid rgba(248,113,113,0.25)",
+              color:      paymentMsg.type === "success" ? "#34D399" : "#F87171",
             }}>
             <span className="flex items-center gap-2">
-              {autopayMsg.type === "success" ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-              {autopayMsg.text}
+              {paymentMsg.type === "success" ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+              {paymentMsg.text}
             </span>
-            <button onClick={() => setAutopayMsg(null)} className="opacity-60 hover:opacity-100"><X size={13} /></button>
+            <button onClick={() => setPaymentMsg(null)} className="opacity-60 hover:opacity-100"><X size={13} /></button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Billing Summary Card — only when services are assigned ── */}
-      {hasServices && (
-        <BillingSummaryCard
-          mandate={mandate}
-          monthlyTotal={monthlyTotal}
-          activeCount={active.length}
-          nextBillingDate={nextBill}
-          onSetupAutopay={setupAutopay}
-          settingUp={settingUp}
-        />
+      {pending.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+          <h2 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
+            <Clock size={14} /> Awaiting Payment ({pending.length})
+          </h2>
+          <p className="text-xs text-slate">Pay for the first month to activate each service. Next month you’ll see “Due” and pay again to continue.</p>
+          {pending.map((sub, i) => (
+            <motion.div key={sub._id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.07 }}>
+              <PendingCard sub={sub} onReject={handleReject} onPay={openPayment} payingId={payingId} />
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
-      {/* Pending Acceptance */}
-      <AnimatePresence>
-        {pending.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
-            <h2 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
-              <Clock size={14} /> Awaiting Your Response ({pending.length})
-            </h2>
-            {pending.map((sub, i) => (
-              <motion.div key={sub._id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.07 }}>
-                <PendingCard sub={sub} onAccept={handleAccept} onReject={handleReject} />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Active Services */}
       {active.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-snow flex items-center gap-2">
@@ -295,14 +241,13 @@ function ClientServicesInner() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {active.map((sub, i) => (
               <motion.div key={sub._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <ActiveCard sub={sub} onCancel={handleCancel} />
+                <ActiveCard sub={sub} onCancel={handleCancel} onPayDue={openPayment} payingId={payingId} />
               </motion.div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Other (cancelled/paused/rejected) */}
       {others.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate">Other Services</h2>
@@ -326,22 +271,18 @@ function ClientServicesInner() {
         </div>
       )}
 
-      {/* Empty state */}
       {!hasServices && (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <Shield size={40} className="text-slate" />
           <p className="text-sm font-medium text-snow">No services yet</p>
-          <p className="text-xs text-slate">Services assigned by Websevix will appear here</p>
+          <p className="text-xs text-slate">Services assigned by Websevix will appear here. Pay for the first month to activate.</p>
         </div>
       )}
 
-      {/* Invoice History */}
       {invoices.length > 0 && <InvoiceSection invoices={invoices} />}
     </motion.div>
   );
 }
-
-// ─── Default export wrapped in Suspense (required for useSearchParams) ────────
 
 export default function ClientServicesPage() {
   return (
@@ -357,108 +298,8 @@ export default function ClientServicesPage() {
   );
 }
 
-// ─── Billing Summary Card ─────────────────────────────────────────────────────
-
-function BillingSummaryCard({ mandate, monthlyTotal, activeCount, nextBillingDate, onSetupAutopay, settingUp }: {
-  mandate: IMandate | null; monthlyTotal: number; activeCount: number;
-  nextBillingDate?: string; onSetupAutopay: () => void; settingUp: boolean;
-}) {
-  const isActive = mandate?.status === "active" || mandate?.status === "authenticated";
-  const pct      = isActive && mandate ? Math.min(100, Math.round((monthlyTotal / mandate.maxAmount) * 100)) : 0;
-
-  if (!isActive) {
-    // Only show setup card when there are active services that need billing
-    if (activeCount === 0) return null;
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-        className="rounded-2xl p-5"
-        style={{ background: "linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.04))", border: "1px solid rgba(99,102,241,0.25)" }}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2))" }}>
-              <Zap size={18} className="text-indigo-400" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-snow">Setup UPI Autopay</p>
-              <p className="text-xs text-slate mt-0.5">
-                Enter UPI ID → Approve on app → ₹2 auth → ₹{monthlyTotal.toLocaleString("en-IN")}/month auto-deduct
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onSetupAutopay}
-            disabled={settingUp}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60 hover:opacity-90 transition-all flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}>
-            {settingUp ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
-            {settingUp ? "Opening Razorpay…" : "Setup UPI Autopay →"}
-          </button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Active mandate — show billing overview
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-      className="rounded-2xl p-5 space-y-4"
-      style={{ background: "linear-gradient(135deg,rgba(16,185,129,0.06),rgba(16,185,129,0.02))", border: "1px solid rgba(16,185,129,0.2)" }}>
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
-            <Shield size={18} className="text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-snow">Billing Overview</p>
-            {nextBillingDate && (
-              <p className="text-xs text-slate">
-                Next billing: {new Date(nextBillingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold font-display text-snow">₹{monthlyTotal.toLocaleString("en-IN")}</p>
-          <p className="text-xs text-slate">/month · {activeCount} {activeCount === 1 ? "service" : "services"}</p>
-        </div>
-      </div>
-
-      {/* Mandate info bar */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs flex-wrap gap-2">
-          <span className="text-slate flex items-center gap-1.5">
-            <CheckCircle2 size={11} className="text-emerald-400" />
-            Autopay Active
-            {mandate?.paymentMethod && ` · ${mandate.paymentMethod}`}
-            {mandate?.maskedAccount  && ` (${mandate.maskedAccount})`}
-          </span>
-          <span className="text-slate">
-            ₹{monthlyTotal.toLocaleString("en-IN")} / ₹{(mandate?.maxAmount ?? 15000).toLocaleString("en-IN")} limit
-          </span>
-        </div>
-        <div className="h-2 rounded-full overflow-hidden bg-white/5">
-          <motion.div
-            className="h-full rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            style={{ background: pct > 80 ? "linear-gradient(90deg,#F59E0B,#EF4444)" : "linear-gradient(90deg,#10B981,#34D399)" }}
-          />
-        </div>
-        <p className="text-[10px] text-slate">{pct}% of ₹15,000 mandate limit used</p>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Pending Card ─────────────────────────────────────────────────────────────
-
-function PendingCard({ sub, onAccept, onReject }: {
-  sub: ClientSub; onAccept: (id: string) => void; onReject: (id: string) => void;
+function PendingCard({ sub, onReject, onPay, payingId }: {
+  sub: ClientSub; onReject: (id: string) => void; onPay: (id: string, type: "first", amount: number) => void; payingId: string | null;
 }) {
   const [expanded, setExpanded] = useState(true);
   const price = sub.customPrice ?? sub.serviceId.basePrice;
@@ -471,10 +312,10 @@ function PendingCard({ sub, onAccept, onReject }: {
             <span className="text-2xl">{sub.serviceId.icon ?? CATEGORY_ICONS[sub.serviceId.category] ?? "📦"}</span>
             <div>
               <p className="text-sm font-semibold text-snow">{sub.serviceId.name}</p>
-              <p className="text-xs text-slate">₹{price.toLocaleString("en-IN")}/{sub.serviceId.billingCycle} · Offered by Websevix</p>
+              <p className="text-xs text-slate">₹{price.toLocaleString("en-IN")}/{sub.serviceId.billingCycle} · Pay for first month to activate</p>
             </div>
           </div>
-          {sub.serviceId.features.length > 0 && (
+          {sub.serviceId.features?.length > 0 && (
             <button onClick={() => setExpanded(v => !v)} className="p-1.5 text-slate hover:text-snow transition-colors">
               <motion.div animate={{ rotate: expanded ? 180 : 0 }}><X size={13} /></motion.div>
             </button>
@@ -482,7 +323,7 @@ function PendingCard({ sub, onAccept, onReject }: {
         </div>
 
         <AnimatePresence>
-          {expanded && sub.serviceId.features.length > 0 && (
+          {expanded && sub.serviceId.features?.length > 0 && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
               <div className="mb-3 space-y-1.5">
                 {sub.serviceId.features.map((f, i) => (
@@ -502,11 +343,13 @@ function PendingCard({ sub, onAccept, onReject }: {
               <XCircle size={12} /> Decline
             </button>
           )}
-          <button onClick={() => onAccept(sub._id)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+          <button
+            onClick={() => onPay(sub._id, "first", price)}
+            disabled={payingId === sub._id}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
             style={{ background: "linear-gradient(135deg,#10B981,#059669)" }}>
-            <CheckCircle2 size={12} />
-            {sub.isMandatory ? "Acknowledge" : "Accept Service"} · ₹{price.toLocaleString("en-IN")}/mo
+            {payingId === sub._id ? <Loader2 size={12} className="animate-spin" /> : <CreditCard size={12} />}
+            {payingId === sub._id ? "Opening…" : `Pay ₹${price.toLocaleString("en-IN")} for first month`}
           </button>
         </div>
       </div>
@@ -514,21 +357,28 @@ function PendingCard({ sub, onAccept, onReject }: {
   );
 }
 
-// ─── Active Card ──────────────────────────────────────────────────────────────
-
-function ActiveCard({ sub, onCancel }: { sub: ClientSub; onCancel: (id: string, name: string) => void }) {
+function ActiveCard({ sub, onCancel, onPayDue, payingId }: {
+  sub: ClientSub; onCancel: (id: string, name: string) => void;
+  onPayDue: (id: string, type: "renewal", amount: number) => void; payingId: string | null;
+}) {
   const price = sub.customPrice ?? sub.serviceId.basePrice;
+  const isDue = sub.isDue === true;
 
   return (
     <div className="rounded-2xl p-4 hover:border-emerald-500/20 transition-all"
-      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      style={{
+        background: isDue ? "rgba(251,191,36,0.04)" : "rgba(255,255,255,0.02)",
+        border:     isDue ? "1px solid rgba(251,191,36,0.25)" : "1px solid rgba(255,255,255,0.07)",
+      }}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <span className="text-xl">{sub.serviceId.icon ?? CATEGORY_ICONS[sub.serviceId.category] ?? "📦"}</span>
           <div>
             <p className="text-sm font-semibold text-snow">{sub.serviceId.name}</p>
             <p className="text-xs text-slate">
-              Since {new Date(sub.billingStartDate ?? sub.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+              Valid till {sub.nextBillingDate
+                ? new Date(sub.nextBillingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                : "—"}
             </p>
           </div>
         </div>
@@ -537,18 +387,25 @@ function ActiveCard({ sub, onCancel }: { sub: ClientSub; onCancel: (id: string, 
           <p className="text-[10px] text-slate">/{sub.serviceId.billingCycle}</p>
         </div>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ color: "#34D399", background: "rgba(52,211,153,0.1)" }}>
-            <CheckCircle2 size={10} /> Active
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ color: isDue ? "#FBBF24" : "#34D399", background: isDue ? "rgba(251,191,36,0.1)" : "rgba(52,211,153,0.1)" }}>
+            {isDue ? <AlertTriangle size={10} /> : <CheckCircle2 size={10} />}
+            {isDue ? "Payment due" : "Active"}
           </span>
           {sub.isMandatory && (
             <span className="text-[10px] px-2 py-0.5 rounded-full text-amber-400 bg-amber-500/10">🔒 Mandatory</span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {sub.nextBillingDate && (
-            <p className="text-[10px] text-slate">Next: {new Date(sub.nextBillingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</p>
+          {isDue && (
+            <button
+              onClick={() => onPayDue(sub._id, "renewal", price)}
+              disabled={payingId === sub._id}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-60">
+              {payingId === sub._id ? <Loader2 size={11} className="animate-spin" /> : null}
+              {payingId === sub._id ? "Opening…" : `Pay ₹${price.toLocaleString("en-IN")} for next month`}
+            </button>
           )}
           {!sub.isMandatory && (
             <button onClick={() => onCancel(sub._id, sub.serviceId.name)}
@@ -561,8 +418,6 @@ function ActiveCard({ sub, onCancel }: { sub: ClientSub; onCancel: (id: string, 
     </div>
   );
 }
-
-// ─── Invoice Section ──────────────────────────────────────────────────────────
 
 function InvoiceSection({ invoices }: { invoices: IInvoice[] }) {
   return (
