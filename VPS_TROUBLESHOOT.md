@@ -74,6 +74,9 @@ Yeh sab run karo (copy-paste):
 ```bash
 cd /var/www/websevix
 
+# Check .env.production has required vars (add if missing)
+grep -q "NEXTAUTH_SECRET=" .env.production || echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" >> .env.production
+
 # .env standalone folder mein (Next.js yahi se load karta hai)
 cp .env.production .next/standalone/.env.production
 

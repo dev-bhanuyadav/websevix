@@ -5,6 +5,8 @@ import { jsonResponse } from "@/lib/api";
 import { verifyAccessToken } from "@/lib/jwt";
 import { ClientService } from "@/models/ClientService";
 import { ServiceInvoice } from "@/models/ServiceInvoice";
+import { Service } from "@/models/Service"; // Required for populate to work
+import { User } from "@/models/User"; // Required for ClientService populate
 
 export async function GET(request: NextRequest) {
   let payload: { userId: string };
