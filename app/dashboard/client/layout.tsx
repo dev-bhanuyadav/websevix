@@ -40,7 +40,13 @@ export default function ClientDashboardLayout({ children }: { children: React.Re
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-base flex items-center justify-center" style={{ background: "#07070F" }}>
+        <p className="text-sm text-slate">Redirecting to login…</p>
+      </div>
+    );
+  }
 
   const title = Object.entries(PAGE_TITLES).find(([p]) => pathname === p || (p !== "/dashboard/client" && pathname.startsWith(p)))?.[1];
 

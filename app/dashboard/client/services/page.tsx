@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, CreditCard, CheckCircle2, XCircle, Clock, AlertTriangle,
@@ -77,15 +76,25 @@ function ClientServicesInner() {
   const [paymentMsg, setPaymentMsg] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const rzpScriptLoaded = useRef(false);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     if (!accessToken) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const r = await fetch("/api/client/services", { headers: { Authorization: `Bearer ${accessToken}` } });
-      const d = await r.json();
-      setSubs(d.services ?? []);
-      setInvoices(d.invoices ?? []);
-    } finally { setLoading(false); }
+      const d = await r.json().catch(() => ({}));
+      setSubs(Array.isArray(d.services) ? d.services : []);
+      setInvoices(Array.isArray(d.invoices) ? d.invoices : []);
+      if (!r.ok && d.error) setLoadError(d.error);
+    } catch (_) {
+      setSubs([]);
+      setInvoices([]);
+      setLoadError("Failed to load services. Please refresh.");
+    } finally {
+      setLoading(false);
+    }
   }, [accessToken]);
 
   useEffect(() => { load(); }, [load]);
@@ -201,9 +210,9 @@ function ClientServicesInner() {
     }
   };
 
-  const pending  = subs.filter(s => s.status === "pending_acceptance");
-  const active   = subs.filter(s => s.status === "active");
-  const others   = subs.filter(s => !["pending_acceptance", "active"].includes(s.status));
+  const pending  = subs.filter(s => s && s.status === "pending_acceptance");
+  const active   = subs.filter(s => s && s.status === "active");
+  const others   = subs.filter(s => s && !["pending_acceptance", "active"].includes(s.status));
   const hasServices = subs.length > 0;
 
   if (loading) return (
@@ -220,6 +229,14 @@ function ClientServicesInner() {
         <h1 className="text-2xl font-bold font-display text-snow">My Services</h1>
         <p className="text-sm text-slate mt-1">Pay for first month to activate, then pay each month when due</p>
       </div>
+
+      {loadError && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-amber-200 bg-amber-500/10 border border-amber-500/20">
+          <AlertTriangle size={16} />
+          {loadError}
+          <button onClick={() => { setLoadError(null); load(); }} className="ml-auto text-xs font-medium text-amber-400 hover:underline">Retry</button>
+        </div>
+      )}
 
       <AnimatePresence>
         {paymentMsg && (
@@ -273,21 +290,26 @@ function ClientServicesInner() {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate">Other Services</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {others.map(sub => (
-              <div key={sub._id} className="rounded-2xl p-4 flex items-center justify-between opacity-60"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{sub.serviceId.icon ?? CATEGORY_ICONS[sub.serviceId.category] ?? "📦"}</span>
-                  <div>
-                    <p className="text-sm text-snow">{sub.serviceId.name}</p>
-                    <p className="text-xs text-slate">₹{(sub.customPrice ?? sub.serviceId.basePrice).toLocaleString("en-IN")}/{sub.serviceId.billingCycle}</p>
+            {others.map(sub => {
+              const svc = sub.serviceId;
+              if (!svc) return null;
+              const price = sub.customPrice ?? svc.basePrice ?? 0;
+              return (
+                <div key={sub._id} className="rounded-2xl p-4 flex items-center justify-between opacity-60"
+                  style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{svc.icon ?? CATEGORY_ICONS[svc.category] ?? "📦"}</span>
+                    <div>
+                      <p className="text-sm text-snow">{svc.name ?? "Service"}</p>
+                      <p className="text-xs text-slate">₹{price.toLocaleString("en-IN")}/{svc.billingCycle ?? "mo"}</p>
+                    </div>
                   </div>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: STATUS_CFG[sub.status].color, background: STATUS_CFG[sub.status].bg }}>
+                    {STATUS_CFG[sub.status].label}
+                  </span>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: STATUS_CFG[sub.status].color, background: STATUS_CFG[sub.status].bg }}>
-                  {STATUS_CFG[sub.status].label}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -323,20 +345,22 @@ function PendingCard({ sub, onReject, onPay, payingId }: {
   sub: ClientSub; onReject: (id: string) => void; onPay: (id: string, type: "first", amount: number) => void; payingId: string | null;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const price = sub.customPrice ?? sub.serviceId.basePrice;
+  const svc = sub.serviceId;
+  if (!svc) return null;
+  const price = sub.customPrice ?? svc.basePrice ?? 0;
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.2)" }}>
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{sub.serviceId.icon ?? CATEGORY_ICONS[sub.serviceId.category] ?? "📦"}</span>
+            <span className="text-2xl">{svc.icon ?? CATEGORY_ICONS[svc.category] ?? "📦"}</span>
             <div>
-              <p className="text-sm font-semibold text-snow">{sub.serviceId.name}</p>
-              <p className="text-xs text-slate">₹{price.toLocaleString("en-IN")}/{sub.serviceId.billingCycle} · Pay for first month to activate</p>
+              <p className="text-sm font-semibold text-snow">{svc.name ?? "Service"}</p>
+              <p className="text-xs text-slate">₹{price.toLocaleString("en-IN")}/{svc.billingCycle ?? "mo"} · Pay for first month to activate</p>
             </div>
           </div>
-          {sub.serviceId.features?.length > 0 && (
+          {svc.features?.length > 0 && (
             <button onClick={() => setExpanded(v => !v)} className="p-1.5 text-slate hover:text-snow transition-colors">
               <motion.div animate={{ rotate: expanded ? 180 : 0 }}><X size={13} /></motion.div>
             </button>
@@ -344,10 +368,10 @@ function PendingCard({ sub, onReject, onPay, payingId }: {
         </div>
 
         <AnimatePresence>
-          {expanded && sub.serviceId.features?.length > 0 && (
+          {expanded && svc.features?.length > 0 && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
               <div className="mb-3 space-y-1.5">
-                {sub.serviceId.features.map((f, i) => (
+                {svc.features.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-slate">
                     <CheckCircle2 size={10} className="text-emerald-400 flex-shrink-0" />{f}
                   </div>
@@ -382,7 +406,9 @@ function ActiveCard({ sub, onCancel, onPayDue, payingId }: {
   sub: ClientSub; onCancel: (id: string, name: string) => void;
   onPayDue: (id: string, type: "renewal", amount: number) => void; payingId: string | null;
 }) {
-  const price = sub.customPrice ?? sub.serviceId.basePrice;
+  const svc = sub.serviceId;
+  if (!svc) return null;
+  const price = sub.customPrice ?? svc.basePrice ?? 0;
   const isDue = sub.isDue === true;
 
   return (
@@ -393,9 +419,9 @@ function ActiveCard({ sub, onCancel, onPayDue, payingId }: {
       }}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <span className="text-xl">{sub.serviceId.icon ?? CATEGORY_ICONS[sub.serviceId.category] ?? "📦"}</span>
+          <span className="text-xl">{svc.icon ?? CATEGORY_ICONS[svc.category] ?? "📦"}</span>
           <div>
-            <p className="text-sm font-semibold text-snow">{sub.serviceId.name}</p>
+            <p className="text-sm font-semibold text-snow">{svc.name ?? "Service"}</p>
             <p className="text-xs text-slate">
               Valid till {sub.nextBillingDate
                 ? new Date(sub.nextBillingDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
