@@ -115,7 +115,33 @@ tail -50 /var/log/nginx/error.log
 
 ---
 
-## 8. Ecosystem config (standalone folder se run)
+## 8. CSS/JS 404 — "Application error: a client-side exception" / ChunkLoadError
+
+Jab browser console mein **404** aaye `/next/static/css/...` ya `/_next/static/...` pe, ya page pe **"Application error: a client-side exception"** dikhe:
+
+1. **Nginx config update karo** — repo se latest `nginx.conf` copy karke `sites-available` mein daalo. Is config mein **dono** paths serve hote hain: `/_next/static/` aur `/next/static/` (bina underscore), taaki CSS/JS dono tarah ki request pe mil jaye.
+
+   ```bash
+   cd /var/www/websevix
+   git pull origin main
+   cp nginx.conf /etc/nginx/sites-available/websevix
+   nginx -t && systemctl reload nginx
+   ```
+
+2. **Static files hona zaroori** — deploy script yeh copy karta hai: `.next/static` → `.next/standalone/_next/static`. Agar 404 ab bhi aaye to **fresh deploy** chalao taaki build + copy dono ho:
+
+   ```bash
+   cd /var/www/websevix
+   bash deploy.sh
+   ```
+
+   Deploy ke baad check: `ls .next/standalone/_next/static/css/` aur `ls .next/standalone/_next/static/chunks/` — dono mein files honi chahiye.
+
+3. **Browser cache** — hard refresh karo (Ctrl+Shift+R / Cmd+Shift+R) ya incognito se try karo.
+
+---
+
+## 9. Ecosystem config (standalone folder se run)
 
 `ecosystem.config.js` mein ye hona chahiye:
 

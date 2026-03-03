@@ -20,6 +20,14 @@ server {
         access_log off;
     }
 
+    # Some clients request /next/static/ (no underscore) — serve same files
+    location ^~ /next/static/ {
+        alias /var/www/websevix/.next/standalone/_next/static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
     # Public folder
     location ^~ /public/ {
         alias /var/www/websevix/.next/standalone/public/;
