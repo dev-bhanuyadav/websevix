@@ -7,48 +7,102 @@ import { ClientService } from "@/models/ClientService";
 import { ServiceInvoice } from "@/models/ServiceInvoice";
 
 export async function GET(request: NextRequest) {
+  let payload: { userId: string };
+  
   try {
     const auth = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!auth) return jsonResponse({ error: "Please log in to view services." }, 401);
-    const payload = await verifyAccessToken(auth);
+    payload = await verifyAccessToken(auth);
+  } catch (authErr) {
+    const msg = authErr instanceof Error ? authErr.message : String(authErr);
+    console.error("[client/services GET] Auth error:", authErr);
+    if (msg.includes("expired") || msg.includes("invalid") || msg.includes("jwt")) {
+      return jsonResponse({ error: "Session expired. Please log in again." }, 401);
+    }
+    return jsonResponse({ error: "Authentication failed. Please log in again." }, 401);
+  }
 
+  try {
     await connectDB();
+  } catch (dbErr) {
+    const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+    console.error("[client/services GET] DB connection error:", dbErr);
+    if (msg.includes("MONGODB_URI")) {
+      return jsonResponse({ error: "Database not configured. Please contact support." }, 503);
+    }
+    if (msg.includes("MongoNetworkError") || msg.includes("ECONNREFUSED") || msg.includes("timeout")) {
+      return jsonResponse({ error: "Database temporarily unavailable. Please try again in a moment." }, 503);
+    }
+    return jsonResponse({ error: "Database connection failed. Please try again." }, 503);
+  }
 
+  try {
     const [services, invoices] = await Promise.all([
       ClientService.find({ clientId: payload.userId })
         .populate("serviceId", "name description category icon basePrice billingCycle features isMandatory")
         .sort({ createdAt: -1 })
-        .lean(),
+        .lean()
+        .catch((err) => {
+          console.error("[client/services GET] ClientService query error:", err);
+          return [];
+        }),
       ServiceInvoice.find({ clientId: payload.userId })
         .sort({ createdAt: -1 })
         .limit(12)
-        .lean(),
+        .lean()
+        .catch((err) => {
+          console.error("[client/services GET] ServiceInvoice query error:", err);
+          return [];
+        }),
     ]);
 
     const now = new Date();
     const servicesWithDue = services.map((s: { nextBillingDate?: Date; status: string; [k: string]: unknown }) => {
-      const next = s.nextBillingDate ? new Date(s.nextBillingDate) : null;
-      const isDue = s.status === "active" && next && next <= now;
-      return { ...s, isDue: !!isDue };
+      try {
+        const next = s.nextBillingDate ? new Date(s.nextBillingDate) : null;
+        const isDue = s.status === "active" && next && next <= now;
+        return { ...s, isDue: !!isDue };
+      } catch (dateErr) {
+        console.error("[client/services GET] Date processing error for service:", s._id, dateErr);
+        return { ...s, isDue: false };
+      }
     });
 
     const active = services.filter((s: { status: string }) => s.status === "active");
     const monthlyTotal = active.reduce((sum: number, s: { serviceId?: { basePrice?: number }; customPrice?: number }) => {
-      const svc = s.serviceId as { basePrice?: number } | undefined;
-      return sum + (s.customPrice ?? svc?.basePrice ?? 0);
+      try {
+        const svc = s.serviceId as { basePrice?: number } | undefined;
+        return sum + (s.customPrice ?? svc?.basePrice ?? 0);
+      } catch (calcErr) {
+        console.error("[client/services GET] Price calculation error for service:", s._id, calcErr);
+        return sum;
+      }
     }, 0);
 
-    return jsonResponse({ services: servicesWithDue, invoices, monthlyTotal });
+    return jsonResponse({ 
+      services: servicesWithDue, 
+      invoices, 
+      monthlyTotal,
+      _debug: {
+        servicesCount: services.length,
+        invoicesCount: invoices.length,
+        userId: payload.userId,
+      }
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("Unauthorized") || msg.includes("jwt") || msg.includes("expired") || msg.includes("invalid")) {
-      return jsonResponse({ error: "Session expired. Please log in again." }, 401);
+    console.error("[client/services GET] Processing error:", e);
+    
+    if (msg.includes("Cast to ObjectId failed")) {
+      return jsonResponse({ error: "Invalid user ID. Please log out and log in again." }, 400);
     }
-    if (msg.includes("MONGODB_URI") || msg.includes("MongoNetworkError") || msg.includes("connect ECONNREFUSED")) {
-      console.error("[client/services GET] DB:", e);
-      return jsonResponse({ error: "Services temporarily unavailable. Please try again in a moment." }, 503);
+    if (msg.includes("MongoNetworkError") || msg.includes("timeout")) {
+      return jsonResponse({ error: "Database query timed out. Please try again." }, 503);
     }
-    console.error("[client/services GET]", e);
-    return jsonResponse({ error: "Failed to load services. Please try again." }, 500);
+    
+    return jsonResponse({ 
+      error: "Failed to load services. Please try again.", 
+      _debug: process.env.NODE_ENV === "development" ? msg : undefined 
+    }, 500);
   }
 }

@@ -83,15 +83,56 @@ function ClientServicesInner() {
     setLoading(true);
     setLoadError(null);
     try {
-      const r = await fetch("/api/client/services", { headers: { Authorization: `Bearer ${accessToken}` } });
+      const r = await fetch("/api/client/services", { 
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(15000) // 15s timeout
+      });
+      
+      if (!r.ok) {
+        const errorText = await r.text().catch(() => "");
+        let errorData: { error?: string } = {};
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // If not JSON, use status-based message
+          if (r.status === 401) {
+            setLoadError("Session expired. Please log in again.");
+            return;
+          }
+          if (r.status === 503) {
+            setLoadError("Services temporarily unavailable. Please try again in a moment.");
+            return;
+          }
+          setLoadError(`Server error (${r.status}). Please try again.`);
+          return;
+        }
+        setLoadError(errorData.error || `Server error (${r.status}). Please try again.`);
+        return;
+      }
+
       const d = await r.json().catch(() => ({}));
       setSubs(Array.isArray(d.services) ? d.services : []);
       setInvoices(Array.isArray(d.invoices) ? d.invoices : []);
-      if (!r.ok && d.error) setLoadError(d.error);
-    } catch (_) {
+      
+      // Debug info in development
+      if (process.env.NODE_ENV === "development" && d._debug) {
+        console.log("[Services] Debug info:", d._debug);
+      }
+    } catch (err) {
       setSubs([]);
       setInvoices([]);
-      setLoadError("Failed to load services. Please refresh.");
+      
+      if (err instanceof Error) {
+        if (err.name === "TimeoutError" || err.message.includes("timeout")) {
+          setLoadError("Request timed out. Please check your connection and try again.");
+        } else if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+          setLoadError("Network error. Please check your connection and try again.");
+        } else {
+          setLoadError("Failed to load services. Please try again.");
+        }
+      } else {
+        setLoadError("Failed to load services. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -234,11 +275,23 @@ function ClientServicesInner() {
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl text-sm text-amber-200 bg-amber-500/10 border border-amber-500/20">
           <AlertTriangle size={16} className="flex-shrink-0" />
           <span className="flex-1 min-w-0">{loadError}</span>
-          {loadError.toLowerCase().includes("log in") || loadError.toLowerCase().includes("session") ? (
-            <a href="/login" className="text-xs font-medium text-amber-400 hover:underline">Log in again</a>
-          ) : (
-            <button onClick={() => { setLoadError(null); load(); }} className="text-xs font-medium text-amber-400 hover:underline">Retry</button>
-          )}
+          <div className="flex gap-2">
+            {loadError.toLowerCase().includes("log in") || loadError.toLowerCase().includes("session") || loadError.toLowerCase().includes("expired") ? (
+              <a href="/login" className="text-xs font-medium text-amber-400 hover:underline">Log in again</a>
+            ) : loadError.toLowerCase().includes("network") || loadError.toLowerCase().includes("connection") ? (
+              <>
+                <button onClick={() => { setLoadError(null); load(); }} className="text-xs font-medium text-amber-400 hover:underline">Retry</button>
+                <button onClick={() => window.location.reload()} className="text-xs font-medium text-amber-300 hover:underline">Refresh page</button>
+              </>
+            ) : loadError.toLowerCase().includes("timeout") ? (
+              <>
+                <button onClick={() => { setLoadError(null); load(); }} className="text-xs font-medium text-amber-400 hover:underline">Try again</button>
+                <button onClick={() => window.location.reload()} className="text-xs font-medium text-amber-300 hover:underline">Refresh page</button>
+              </>
+            ) : (
+              <button onClick={() => { setLoadError(null); load(); }} className="text-xs font-medium text-amber-400 hover:underline">Retry</button>
+            )}
+          </div>
         </div>
       )}
 
