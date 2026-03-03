@@ -25,20 +25,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log("[client/services GET] Attempting DB connection...");
     await connectDB();
+    console.log("[client/services GET] DB connection successful");
   } catch (dbErr) {
     const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
     console.error("[client/services GET] DB connection error:", dbErr);
     if (msg.includes("MONGODB_URI")) {
-      return jsonResponse({ error: "Database not configured. Please contact support." }, 503);
+      return jsonResponse({ error: "Database not configured. Please contact support.", _debug: "MONGODB_URI missing" }, 503);
     }
     if (msg.includes("MongoNetworkError") || msg.includes("ECONNREFUSED") || msg.includes("timeout")) {
-      return jsonResponse({ error: "Database temporarily unavailable. Please try again in a moment." }, 503);
+      return jsonResponse({ error: "Database temporarily unavailable. Please try again in a moment.", _debug: msg }, 503);
     }
-    return jsonResponse({ error: "Database connection failed. Please try again." }, 503);
+    return jsonResponse({ error: "Database connection failed. Please try again.", _debug: msg }, 503);
   }
 
   try {
+    console.log("[client/services GET] Querying services for user:", payload.userId);
     const [services, invoices] = await Promise.all([
       ClientService.find({ clientId: payload.userId })
         .populate("serviceId", "name description category icon basePrice billingCycle features isMandatory")
@@ -46,6 +49,7 @@ export async function GET(request: NextRequest) {
         .lean()
         .catch((err) => {
           console.error("[client/services GET] ClientService query error:", err);
+          console.error("[client/services GET] Error details:", err.message);
           return [];
         }),
       ServiceInvoice.find({ clientId: payload.userId })
