@@ -1,5 +1,6 @@
-# Nginx — port 80, bina SSL (pehli deploy / IP check ke liye)
-# Use: cp nginx.conf.minimal /etc/nginx/sites-available/websevix
+# Nginx — HTTP only (no SSL)
+# cp nginx.conf.minimal /etc/nginx/sites-available/websevix
+# nginx -t && systemctl reload nginx
 
 server {
     listen 80 default_server;
@@ -9,26 +10,24 @@ server {
     client_max_body_size 20M;
     gzip on;
     gzip_types text/plain text/css application/json application/javascript
-               text/javascript application/x-javascript text/xml application/xml
-               image/svg+xml font/woff2;
+               text/javascript text/xml application/xml image/svg+xml font/woff2;
 
-    # ── _next/static files (Tailwind CSS, JS bundles) ──────────
+    # CSS + JS bundles — served directly from disk
     location ^~ /_next/static/ {
-        root /var/www/websevix/.next/standalone;
+        alias /var/www/websevix/.next/standalone/_next/static/;
         expires 1y;
         add_header Cache-Control "public, immutable";
-        add_header Vary "Accept-Encoding";
         access_log off;
     }
 
-    # ── Public folder (favicon, images, etc.) ──────────────────
+    # Public folder
     location ^~ /public/ {
         alias /var/www/websevix/.next/standalone/public/;
         expires 7d;
         access_log off;
     }
 
-    # ── Everything else → Next.js on port 3000 ─────────────────
+    # Next.js app
     location / {
         proxy_pass         http://127.0.0.1:3000;
         proxy_http_version 1.1;
