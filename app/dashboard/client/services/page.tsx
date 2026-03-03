@@ -44,6 +44,14 @@ const INV_CFG: Record<InvoiceStatus, { label: string; color: string }> = {
   refunded: { label: "Refunded", color: "#A78BFA" },
 };
 
+/** Razorpay handler response (matches types/razorpay.d.ts) */
+interface RazorpaySuccessResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id?: string;
+  razorpay_subscription_id?: string;
+  razorpay_signature: string;
+}
+
 const CATEGORY_ICONS: Record<string, string> = {
   hosting: "🖥️", maintenance: "🔧", infrastructure: "⚙️",
   security: "🔒", domain: "🌐", integration: "⚡", support: "💬", custom: "📦",
@@ -147,14 +155,20 @@ function ClientServicesInner() {
         name:    "Websevix",
         description: type === "first" ? "Pay for first month" : "Pay for next month",
         theme:   { color: "#6366F1" },
-        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+        handler: async (response: RazorpaySuccessResponse) => {
           try {
+            const orderId = response.razorpay_order_id;
+            if (!orderId) {
+              setPaymentMsg({ type: "error", text: "Invalid payment response." });
+              setPayingId(null);
+              return;
+            }
             const vr = await fetch("/api/client/services/verify-payment", {
               method:  "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
               body:    JSON.stringify({
                 razorpay_payment_id:  response.razorpay_payment_id,
-                razorpay_order_id:    response.razorpay_order_id,
+                razorpay_order_id:    orderId,
                 razorpay_signature:   response.razorpay_signature,
               }),
             });
