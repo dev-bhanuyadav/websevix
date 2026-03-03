@@ -44,8 +44,13 @@ npm run build
 
 # ── Copy static assets into standalone folder ────────────────
 echo "→ Copying static assets..."
-cp -r .next/static   .next/standalone/.next/static
-cp -r public         .next/standalone/public
+# Always remove first to avoid stale files
+rm -rf .next/standalone/.next/static
+rm -rf .next/standalone/public
+cp -r .next/static  .next/standalone/.next/static
+cp -r public        .next/standalone/public
+echo "   CSS files: $(ls .next/standalone/.next/static/css/ 2>/dev/null | wc -l)"
+echo "   JS chunks: $(ls .next/standalone/.next/static/chunks/ 2>/dev/null | wc -l)"
 
 # ── Copy .env so Next.js can load it (standalone runs from .next/standalone) ─
 if [ -f "$APP_DIR/.env.production" ]; then
