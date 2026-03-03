@@ -74,10 +74,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const active = services.filter((s: { status: string }) => s.status === "active");
-    const monthlyTotal = active.reduce((sum: number, s: { serviceId?: { basePrice?: number }; customPrice?: number }) => {
+    const active = services.filter((s: any) => s.status === "active");
+    const monthlyTotal = active.reduce((sum: number, s: any) => {
       try {
-        const svc = s.serviceId as { basePrice?: number } | undefined;
+        const svc = s.serviceId;
         return sum + (s.customPrice ?? svc?.basePrice ?? 0);
       } catch (calcErr) {
         console.error("[client/services GET] Price calculation error for service:", s._id, calcErr);
