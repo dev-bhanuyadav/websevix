@@ -62,17 +62,30 @@ fi
 # ── Create log dir ────────────────────────────────────────────
 mkdir -p /var/log/websevix
 
+# ── Update Nginx config ───────────────────────────────────────
+NGINX_SITE="/etc/nginx/sites-available/websevix"
+echo "→ Applying Nginx config..."
+if [ -f "/etc/nginx/sites-available" ] || [ -d "/etc/nginx/sites-available" ]; then
+  cp "$APP_DIR/nginx.conf" "$NGINX_SITE"
+  if [ ! -L "/etc/nginx/sites-enabled/websevix" ]; then
+    ln -sf "$NGINX_SITE" "/etc/nginx/sites-enabled/websevix"
+  fi
+  rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+  nginx -t && systemctl reload nginx && echo "   Nginx reloaded ✓"
+fi
+
 # ── Restart with PM2 ─────────────────────────────────────────
 echo "→ Restarting PM2..."
+mkdir -p /var/log/websevix
 pm2 delete websevix 2>/dev/null || true
 pm2 start ecosystem.config.js
 pm2 save
 
+sleep 3
+HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000 2>/dev/null || echo "000")
+
 echo ""
-echo "✓ Deploy complete! App running on port 3000."
-echo "  Nginx should proxy :80/:443 → localhost:3000"
-echo ""
-echo "  If dashboard shows broken spinner / 404 for CSS or JS, run on VPS:"
-echo "    sudo bash $APP_DIR/update-nginx-on-vps.sh"
-echo "  Then hard-refresh the browser (Ctrl+Shift+R)."
+echo "✓ Deploy complete!"
+echo "  App health: localhost:3000 → $HTTP"
+echo "  Open https://websevix.com in incognito (Ctrl+Shift+R to clear cache)"
 echo ""
