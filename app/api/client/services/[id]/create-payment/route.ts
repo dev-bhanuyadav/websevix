@@ -73,9 +73,9 @@ export async function POST(
         amountRupees,
         currency:   "INR",
       });
-    } catch (rzErr) {
+    } catch (rzErr: unknown) {
       const msg = rzErr instanceof Error ? rzErr.message : String(rzErr);
-      if (msg.includes("not configured")) {
+      if (msg.includes("not configured") || !keyId) {
         return jsonResponse({
           success:       true,
           orderId:       `order_mock_${Date.now()}`,
@@ -87,10 +87,19 @@ export async function POST(
           notes:         { clientServiceId: id, type: type === "first" ? "service_first" : "service_renewal" },
         });
       }
-      throw rzErr;
+      console.error("[client/services/create-payment] Razorpay:", rzErr);
+      const userMsg = msg.includes("401") || msg.includes("Unauthorized")
+        ? "Invalid Razorpay keys. Please contact support."
+        : "Payment gateway is temporarily unavailable. Try again in a moment.";
+      return jsonResponse({ error: userMsg }, 500);
     }
   } catch (e) {
     console.error("[client/services/create-payment]", e);
-    return jsonResponse({ error: "Failed to create payment" }, 500);
+    const msg = e instanceof Error ? e.message : "";
+    const userMsg = msg.includes("Unauthorized") || msg.includes("jwt")
+      ? "Session expired. Please log in again."
+      : msg.includes("not found") ? "Service not found."
+      : "Unable to create payment. Please try again.";
+    return jsonResponse({ error: userMsg }, 500);
   }
 }

@@ -1,47 +1,61 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { jsonResponse } from "@/lib/api";
 import { verifyAccessToken } from "@/lib/jwt";
 
+const KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? process.env.RAZORPAY_KEY_ID ?? "";
+
 export async function POST(request: NextRequest) {
   try {
     const auth = request.headers.get("authorization")?.replace("Bearer ", "");
-    if (!auth) return jsonResponse({ error: "Unauthorized" }, 401);
+    if (!auth) return jsonResponse({ error: "Please log in to continue." }, 401);
     await verifyAccessToken(auth);
 
-    const body = await request.json();
-    const { amount = 500, currency = "INR", receipt } = body;
+    const body = await request.json().catch(() => ({}));
+    const amountRupees = Number(body.amount) || 500;
+    const currency = body.currency ?? "INR";
+    const receipt = body.receipt ?? `ws_${Date.now()}`;
+    const amountPaise = Math.round(amountRupees * 100);
+    if (amountPaise < 100) return jsonResponse({ error: "Minimum amount is ₹1" }, 400);
 
     try {
       const { getRazorpay } = await import("@/lib/razorpay");
       const rz = getRazorpay();
-
       const order = await rz.orders.create({
-        amount:   amount * 100, // paise
+        amount:   amountPaise,
         currency,
-        receipt:  receipt ?? `ws_${Date.now()}`,
+        receipt,
       });
-
-      return jsonResponse({ success: true, order });
-    } catch (rzErr) {
+      return jsonResponse({
+        success: true,
+        order:   { id: order.id, amount: order.amount, currency: order.currency },
+        keyId:   KEY_ID || undefined,
+      });
+    } catch (rzErr: unknown) {
       const msg = rzErr instanceof Error ? rzErr.message : String(rzErr);
-      if (msg.includes("not configured")) {
-        // Dev mode: return mock order for testing
+      if (msg.includes("not configured") || !KEY_ID) {
         return jsonResponse({
           success: true,
-          order: {
-            id:       `order_mock_${Date.now()}`,
-            amount:   amount * 100,
+          order:   {
+            id:     `order_mock_${Date.now()}`,
+            amount: amountPaise,
             currency,
-            status:   "created",
-            _mock:    true,
+            status: "created",
+            _mock:  true,
           },
+          keyId: "mock",
         });
       }
-      throw rzErr;
+      console.error("[payment/create] Razorpay:", rzErr);
+      const userMsg = msg.includes("401") || msg.includes("Unauthorized")
+        ? "Invalid Razorpay keys. Please contact support."
+        : "Payment gateway is temporarily unavailable. Try again in a moment.";
+      return jsonResponse({ error: userMsg }, 500);
     }
   } catch (e) {
     console.error("[payment/create]", e);
-    return jsonResponse({ error: "Failed to create payment order" }, 500);
+    const msg = e instanceof Error ? e.message : "";
+    const userMsg = msg.includes("Unauthorized") || msg.includes("jwt") ? "Session expired. Please log in again." : "Unable to start payment. Please try again.";
+    return jsonResponse({ error: userMsg }, 500);
   }
 }

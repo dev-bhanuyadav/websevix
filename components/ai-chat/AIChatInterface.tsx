@@ -152,10 +152,12 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body:    JSON.stringify({ amount: PLACEMENT_FEE, currency: "INR" }),
       });
-      const payData = await payRes.json();
-      if (!payData.success) throw new Error(payData.error ?? "Payment init failed.");
+      const payData = await payRes.json().catch(() => ({}));
+      const errMsg  = payData.error ?? (!payRes.ok ? "Unable to create payment. Please try again." : null);
+      if (!payData.success || errMsg) throw new Error(errMsg ?? "Payment init failed.");
 
       const rzpOrder = payData.order;
+      if (!rzpOrder?.id) throw new Error("Invalid payment response. Please try again.");
 
       // If mock mode (no Razorpay keys), skip checkout and go direct
       if (rzpOrder._mock) {
@@ -168,9 +170,11 @@ export function AIChatInterface({ onOrderPlaced }: AIChatInterfaceProps) {
         return;
       }
 
+      const rzpKey = payData.keyId ?? process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "";
+      if (!rzpKey) throw new Error("Payment gateway not configured. Please contact support.");
+
       // Real Razorpay checkout
       setIsPlacing(false); // let user interact with Razorpay popup
-      const rzpKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "";
       const rzp = new window.Razorpay({
         key:         rzpKey,
         amount:      rzpOrder.amount,

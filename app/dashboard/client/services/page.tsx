@@ -122,6 +122,7 @@ function ClientServicesInner() {
 
       if (d.error) {
         setPaymentMsg({ type: "error", text: d.error });
+        setPayingId(null);
         return;
       }
 
@@ -143,7 +144,13 @@ function ClientServicesInner() {
       }
 
       if (!loaded || !window.Razorpay) {
-        setPaymentMsg({ type: "error", text: "Payment gateway unavailable." });
+        setPaymentMsg({ type: "error", text: "Payment gateway unavailable. Please refresh and try again." });
+        setPayingId(null);
+        return;
+      }
+      if (!d.keyId || !d.orderId) {
+        setPaymentMsg({ type: "error", text: "Payment not configured. Please contact support." });
+        setPayingId(null);
         return;
       }
 
