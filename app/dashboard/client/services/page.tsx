@@ -231,10 +231,14 @@ function ClientServicesInner() {
       </div>
 
       {loadError && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-amber-200 bg-amber-500/10 border border-amber-500/20">
-          <AlertTriangle size={16} />
-          {loadError}
-          <button onClick={() => { setLoadError(null); load(); }} className="ml-auto text-xs font-medium text-amber-400 hover:underline">Retry</button>
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl text-sm text-amber-200 bg-amber-500/10 border border-amber-500/20">
+          <AlertTriangle size={16} className="flex-shrink-0" />
+          <span className="flex-1 min-w-0">{loadError}</span>
+          {loadError.toLowerCase().includes("log in") || loadError.toLowerCase().includes("session") ? (
+            <a href="/login" className="text-xs font-medium text-amber-400 hover:underline">Log in again</a>
+          ) : (
+            <button onClick={() => { setLoadError(null); load(); }} className="text-xs font-medium text-amber-400 hover:underline">Retry</button>
+          )}
         </div>
       )}
 
