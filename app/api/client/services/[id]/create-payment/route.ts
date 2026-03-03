@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import { jsonResponse } from "@/lib/api";
 import { verifyAccessToken } from "@/lib/jwt";
 import { ClientService } from "@/models/ClientService";
+import { Service } from "@/models/Service";
 import { getRazorpay } from "@/lib/razorpay";
 
 interface ClientServiceLean {
@@ -14,7 +15,6 @@ interface ClientServiceLean {
   serviceId: { name: string; basePrice: number; billingCycle: string };
 }
 
-/** Create Razorpay order for service: first month (accept) or renewal */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -24,9 +24,8 @@ export async function POST(
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401);
     const payload = await verifyAccessToken(auth);
 
-    const id = params.id;
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type") || "first"; // "first" | "renewal"
+    const id  = params.id;
+    const type = new URL(request.url).searchParams.get("type") || "first";
 
     await connectDB();
 
@@ -37,92 +36,45 @@ export async function POST(
 
     if (!cs) return jsonResponse({ error: "Service not found" }, 404);
 
-    const svc = cs.serviceId;
+    const svc         = cs.serviceId;
     const amountRupees = cs.customPrice ?? svc.basePrice;
+    const amountPaise  = Math.round(amountRupees * 100);
 
-    if (type === "first") {
-      if (cs.status !== "pending_acceptance")
-        return jsonResponse({ error: "Service is not pending acceptance" }, 400);
-    } else {
-      if (cs.status !== "active")
-        return jsonResponse({ error: "Service is not active" }, 400);
-    }
+    if (type === "first" && cs.status !== "pending_acceptance")
+      return jsonResponse({ error: "Service is not pending acceptance" }, 400);
+    if (type === "renewal" && cs.status !== "active")
+      return jsonResponse({ error: "Service is not active" }, 400);
+    if (amountPaise < 100)
+      return jsonResponse({ error: "Minimum amount is ₹1" }, 400);
 
-    const amountPaise = Math.round(amountRupees * 100);
-    if (amountPaise < 100) return jsonResponse({ error: "Minimum amount is ₹1" }, 400);
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    if (!keyId) return jsonResponse({ error: "Payment gateway not configured on server" }, 500);
 
-    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? process.env.RAZORPAY_KEY_ID;
+    const rz    = getRazorpay();
+    const order = await rz.orders.create({
+      amount:   amountPaise,
+      currency: "INR",
+      receipt:  `svc_${id}_${Date.now()}`,
+      notes: {
+        clientServiceId: id,
+        type: type === "first" ? "service_first" : "service_renewal",
+      },
+    });
 
-    // Check if Razorpay is configured
-    const { isRazorpayConfigured } = await import("@/lib/razorpay");
-    
-    if (!isRazorpayConfigured()) {
-      // Development/test mode: return mock order
-      return jsonResponse({
-        success:       true,
-        orderId:       `order_mock_${Date.now()}`,
-        keyId:         "mock",
-        amount:        amountPaise,
-        amountRupees,
-        currency:      "INR",
-        _mock:         true,
-        notes:         { clientServiceId: id, type: type === "first" ? "service_first" : "service_renewal" },
-        _mockReason:   "Razorpay not configured - using test mode",
-      });
-    }
+    return jsonResponse({
+      success:     true,
+      orderId:     order.id,
+      keyId,
+      amount:      amountPaise,
+      amountRupees,
+      currency:    "INR",
+    });
 
-    try {
-      const rz = getRazorpay();
-      const order = await rz.orders.create({
-        amount:   amountPaise,
-        currency: "INR",
-        receipt:  `svc_${id}_${Date.now()}`,
-        notes:    {
-          clientServiceId: id,
-          type:            type === "first" ? "service_first" : "service_renewal",
-        },
-      });
-
-      return jsonResponse({
-        success:    true,
-        orderId:    order.id,
-        keyId,
-        amount:     amountPaise,
-        amountRupees,
-        currency:   "INR",
-      });
-    } catch (rzErr: unknown) {
-      const msg = rzErr instanceof Error ? rzErr.message : String(rzErr);
-      console.error("[client/services/create-payment] Razorpay error:", rzErr);
-      
-      // Specific error handling
-      if (msg.includes("401") || msg.includes("Unauthorized") || msg.includes("Invalid")) {
-        return jsonResponse({ error: "Payment gateway configuration error. Please contact support." }, 500);
-      }
-      if (msg.includes("network") || msg.includes("timeout") || msg.includes("ENOTFOUND")) {
-        return jsonResponse({ error: "Payment gateway connection issue. Please try again." }, 503);
-      }
-      
-      // Fallback to mock for any other errors
-      return jsonResponse({
-        success:       true,
-        orderId:       `order_mock_${Date.now()}`,
-        keyId:         "mock",
-        amount:        amountPaise,
-        amountRupees,
-        currency:      "INR",
-        _mock:         true,
-        notes:         { clientServiceId: id, type: type === "first" ? "service_first" : "service_renewal" },
-        _mockReason:   "Razorpay temporarily unavailable - using test mode",
-      });
-    }
   } catch (e) {
-    console.error("[client/services/create-payment]", e);
-    const msg = e instanceof Error ? e.message : "";
-    const userMsg = msg.includes("Unauthorized") || msg.includes("jwt")
-      ? "Session expired. Please log in again."
-      : msg.includes("not found") ? "Service not found."
-      : "Unable to create payment. Please try again.";
-    return jsonResponse({ error: userMsg }, 500);
+    console.error("[create-payment]", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("jwt") || msg.includes("Unauthorized")) return jsonResponse({ error: "Session expired. Please log in again." }, 401);
+    if (msg.includes("keys missing"))                         return jsonResponse({ error: "Payment gateway not configured. Contact support." }, 500);
+    return jsonResponse({ error: "Could not create payment order. Please try again." }, 500);
   }
 }

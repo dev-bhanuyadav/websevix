@@ -163,81 +163,63 @@ function ClientServicesInner() {
     setPayingId(clientServiceId);
     setPaymentMsg(null);
     try {
+      // Load Razorpay script first
       const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        setPaymentMsg({ type: "error", text: "Payment gateway failed to load. Please refresh and try again." });
+        setPayingId(null);
+        return;
+      }
+
+      // Create order on server
       const url = type === "first"
         ? `/api/client/services/${clientServiceId}/create-payment?type=first`
         : `/api/client/services/${clientServiceId}/create-payment?type=renewal`;
       const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } });
       const d = await r.json();
 
-      if (d.error) {
-        setPaymentMsg({ type: "error", text: d.error });
+      if (d.error || !d.success) {
+        setPaymentMsg({ type: "error", text: d.error || "Could not create payment order." });
         setPayingId(null);
         return;
       }
 
-      if (d._mock) {
-        setPaymentMsg({ type: "success", text: type === "first" ? "Service activated (mock)." : "Payment recorded (mock)." });
-        await fetch("/api/client/services/verify-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({
-            razorpay_order_id: d.orderId,
-            razorpay_payment_id: "mock_pay_" + Date.now(),
-            razorpay_signature: "mock",
-            _mock: true,
-            notes: d.notes,
-          }),
-        });
-        load();
-        return;
-      }
-
-      if (!loaded || !window.Razorpay) {
-        setPaymentMsg({ type: "error", text: "Payment gateway unavailable. Please refresh and try again." });
-        setPayingId(null);
-        return;
-      }
       if (!d.keyId || !d.orderId) {
-        setPaymentMsg({ type: "error", text: "Payment not configured. Please contact support." });
+        setPaymentMsg({ type: "error", text: "Invalid payment response from server." });
         setPayingId(null);
         return;
       }
 
+      // Open real Razorpay checkout
       const rzp = new window.Razorpay({
-        key:     d.keyId,
-        amount:  d.amount,
-        currency: d.currency || "INR",
-        order_id: d.orderId,
-        name:    "Websevix",
-        description: type === "first" ? "Pay for first month" : "Pay for next month",
-        theme:   { color: "#6366F1" },
+        key:         d.keyId,
+        amount:      d.amount,
+        currency:    d.currency || "INR",
+        order_id:    d.orderId,
+        name:        "Websevix",
+        description: type === "first" ? "Service - First Month" : "Service - Renewal",
+        image:       "/logo.png",
+        theme:       { color: "#6366F1" },
         handler: async (response: RazorpaySuccessResponse) => {
           try {
-            const orderId = response.razorpay_order_id;
-            if (!orderId) {
-              setPaymentMsg({ type: "error", text: "Invalid payment response." });
-              setPayingId(null);
-              return;
-            }
             const vr = await fetch("/api/client/services/verify-payment", {
               method:  "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
               body:    JSON.stringify({
-                razorpay_payment_id:  response.razorpay_payment_id,
-                razorpay_order_id:    orderId,
-                razorpay_signature:   response.razorpay_signature,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_signature:  response.razorpay_signature,
               }),
             });
             const vd = await vr.json();
             if (vd.success) {
-              setPaymentMsg({ type: "success", text: vd.message || "Payment successful." });
+              setPaymentMsg({ type: "success", text: vd.message || "Payment successful! Service activated." });
               load();
             } else {
-              setPaymentMsg({ type: "error", text: vd.error || "Verification failed." });
+              setPaymentMsg({ type: "error", text: vd.error || "Payment verification failed." });
             }
           } catch {
-            setPaymentMsg({ type: "error", text: "Verification error." });
+            setPaymentMsg({ type: "error", text: "Payment verification error. Contact support." });
           } finally {
             setPayingId(null);
           }
