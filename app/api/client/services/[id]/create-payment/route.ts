@@ -6,6 +6,14 @@ import { verifyAccessToken } from "@/lib/jwt";
 import { ClientService } from "@/models/ClientService";
 import { getRazorpay } from "@/lib/razorpay";
 
+interface ClientServiceLean {
+  _id: unknown;
+  clientId: unknown;
+  customPrice?: number | null;
+  status: string;
+  serviceId: { name: string; basePrice: number; billingCycle: string };
+}
+
 /** Create Razorpay order for service: first month (accept) or renewal */
 export async function POST(
   request: NextRequest,
@@ -23,12 +31,13 @@ export async function POST(
     await connectDB();
 
     const cs = await ClientService.findOne({ _id: id, clientId: payload.userId })
-      .populate<{ serviceId: { name: string; basePrice: number; billingCycle: string } }>("serviceId", "name basePrice billingCycle")
-      .lean();
+      .populate("serviceId", "name basePrice billingCycle")
+      .lean()
+      .then((doc) => doc as ClientServiceLean | null);
 
     if (!cs) return jsonResponse({ error: "Service not found" }, 404);
 
-    const svc = cs.serviceId as unknown as { name: string; basePrice: number; billingCycle: string };
+    const svc = cs.serviceId;
     const amountRupees = cs.customPrice ?? svc.basePrice;
 
     if (type === "first") {
