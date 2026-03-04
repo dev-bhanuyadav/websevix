@@ -10,12 +10,7 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
-const links = [
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Services",     href: "#services"    },
-  { label: "Developers",   href: "#"            },
-  { label: "Pricing",      href: "#"            },
-];
+const links: { label: string; href: string }[] = [];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -86,32 +81,34 @@ export default function Navbar() {
             </Link>
           </motion.div>
 
-          {/* Center nav */}
-          <nav className="hidden md:block">
-            <motion.div
-              className="flex items-center gap-0.5 px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06]"
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: EXPO, delay: 0.35 }}
-            >
-              {links.map((l, i) => (
-                <motion.div
-                  key={l.label}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, ease: EXPO, delay: 0.45 + i * 0.07 }}
-                >
-                  <Link
-                    href={l.href}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate hover:text-snow hover:bg-white/[0.07] transition-all duration-400"
-                    style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
+          {/* Center nav — hidden when links array is empty */}
+          {links.length > 0 && (
+            <nav className="hidden md:block">
+              <motion.div
+                className="flex items-center gap-0.5 px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06]"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, ease: EXPO, delay: 0.35 }}
+              >
+                {links.map((l, i) => (
+                  <motion.div
+                    key={l.label}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7, ease: EXPO, delay: 0.45 + i * 0.07 }}
                   >
-                    {l.label}
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.div>
-          </nav>
+                    <Link
+                      href={l.href}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-slate hover:text-snow hover:bg-white/[0.07] transition-all duration-400"
+                      style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
+                    >
+                      {l.label}
+                    </Link>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </nav>
+          )}
 
           {/* Right CTAs */}
           <motion.div
@@ -191,24 +188,26 @@ export default function Navbar() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <nav className="flex-1 flex flex-col gap-1">
-                {links.map((l, i) => (
-                  <motion.div
-                    key={l.label}
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, ease: EXPO, delay: 0.08 * i }}
-                  >
-                    <Link
-                      href={l.href}
-                      onClick={() => setOpen(false)}
-                      className="block px-4 py-4 text-base font-medium text-silver hover:text-snow rounded-xl hover:bg-white/[0.04] transition-all duration-500"
+              {links.length > 0 && (
+                <nav className="flex-1 flex flex-col gap-1">
+                  {links.map((l, i) => (
+                    <motion.div
+                      key={l.label}
+                      initial={{ opacity: 0, x: 30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.6, ease: EXPO, delay: 0.08 * i }}
                     >
-                      {l.label}
-                    </Link>
-                  </motion.div>
-                ))}
-              </nav>
+                      <Link
+                        href={l.href}
+                        onClick={() => setOpen(false)}
+                        className="block px-4 py-4 text-base font-medium text-silver hover:text-snow rounded-xl hover:bg-white/[0.04] transition-all duration-500"
+                      >
+                        {l.label}
+                      </Link>
+                    </motion.div>
+                  ))}
+                </nav>
+              )}
               <motion.div
                 className="flex flex-col gap-3 mt-6"
                 initial={{ opacity: 0, y: 20 }}
