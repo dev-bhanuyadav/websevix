@@ -25,7 +25,7 @@ export default function Hero() {
   const rm = useReducedMotion();
 
   return (
-    <section id="home" className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-16 pb-24">
+    <section id="home" className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-28 pb-24">
 
       {/* ══ Background ══ */}
       <div className="absolute inset-0 bg-[#050510]">
