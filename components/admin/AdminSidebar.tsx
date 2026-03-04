@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -98,41 +97,53 @@ export default function AdminSidebar({
               opacity: 0.35,
             }}
           />
-          {/* Square icon */}
-          <div
-            className="relative z-10 flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden"
-            style={logoSquare ? {} : { background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)" }}
-          >
-            {logoSquare
-              ? <Image src={logoSquare} alt="logo" width={36} height={36} className="object-contain w-full h-full" unoptimized />
-              : <span className="font-display font-bold text-base text-white select-none">W</span>
-            }
-          </div>
-
-          {/* Brand text / wide logo */}
-          <div
-            className="overflow-hidden flex items-center gap-2 ml-3 whitespace-nowrap"
-            style={{
-              maxWidth: showLabels ? 160 : 0,
-              opacity: showLabels ? 1 : 0,
-              transition: "max-width 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.2s",
-            }}
-          >
-            {logoWide
-              ? <Image src={logoWide} alt="Websevix" width={120} height={28} className="object-contain h-6 w-auto" unoptimized />
-              : <span className="font-display font-bold text-snow text-base">Websevix</span>
-            }
-            <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-              style={{
-                background: "rgba(239,68,68,0.15)",
-                color: "#EF4444",
-                border: "1px solid rgba(239,68,68,0.28)",
-              }}
-            >
-              Admin
-            </span>
-          </div>
+          {/* Logo area:
+               collapsed → square icon only
+               expanded  → wide logo (contains icon+text) OR square+text fallback */}
+          {showLabels && logoWide
+            /* ── Expanded + wide logo set → show wide logo only ── */
+            ? <div
+                className="relative z-10 flex items-center gap-2 ml-1"
+                style={{ maxWidth: 160, overflow: "hidden" }}
+              >
+                <img src={logoWide} alt="Websevix" style={{ height: 28, width: "auto", objectFit: "contain" }} />
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                  style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.28)" }}
+                >
+                  Admin
+                </span>
+              </div>
+            /* ── Collapsed or no wide logo → square icon always visible ── */
+            : <>
+                <div
+                  className="relative z-10 flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden"
+                  style={logoSquare ? {} : { background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)" }}
+                >
+                  {logoSquare
+                    ? <img src={logoSquare} alt="logo" style={{ width: 36, height: 36, objectFit: "contain" }} />
+                    : <span className="font-display font-bold text-base text-white select-none">W</span>
+                  }
+                </div>
+                {/* Brand text — only when expanded */}
+                <div
+                  className="overflow-hidden flex items-center gap-2 ml-3 whitespace-nowrap"
+                  style={{
+                    maxWidth: showLabels ? 160 : 0,
+                    opacity: showLabels ? 1 : 0,
+                    transition: "max-width 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.2s",
+                  }}
+                >
+                  <span className="font-display font-bold text-snow text-base">Websevix</span>
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                    style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.28)" }}
+                  >
+                    Admin
+                  </span>
+                </div>
+              </>
+          }
 
           {/* Mobile close / Desktop collapse toggle */}
           {isMobile ? (

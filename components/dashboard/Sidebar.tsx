@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,25 +47,37 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 px-5 py-5 border-b border-white/[0.06] ${collapsed && !mobile ? "justify-center px-0" : ""}`}>
-        {/* Square icon — shown always */}
-        <motion.div
-          className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
-          style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
-          whileHover={{ scale: 1.08, boxShadow: "0 0 20px rgba(99,102,241,0.5)" }}
-          transition={{ type: "spring", stiffness: 400 }}
-        >
-          {logoSquare
-            ? <Image src={logoSquare} alt="logo" width={32} height={32} className="object-contain w-full h-full" unoptimized />
-            : <span className="font-display font-bold text-sm text-white">W</span>
-          }
-        </motion.div>
-
-        {/* Wide logo or text — shown when not collapsed */}
-        {(!collapsed || mobile) && (
-          logoWide
-            ? <Image src={logoWide} alt="Websevix" width={140} height={32} className="object-contain h-7 w-auto" unoptimized />
-            : <span className="font-display font-bold text-base text-snow tracking-tight">Websevix</span>
-        )}
+        {(collapsed && !mobile)
+          /* ── Collapsed: square icon only ── */
+          ? <motion.div
+              className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
+              style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+              whileHover={{ scale: 1.08, boxShadow: "0 0 20px rgba(99,102,241,0.5)" }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              {logoSquare
+                ? <img src={logoSquare} alt="logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                : <span className="font-display font-bold text-sm text-white">W</span>
+              }
+            </motion.div>
+          /* ── Expanded / mobile: wide logo OR square+text ── */
+          : logoWide
+              ? <img src={logoWide} alt="Websevix" style={{ height: 32, width: "auto", objectFit: "contain" }} />
+              : <>
+                  <motion.div
+                    className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
+                    style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+                    whileHover={{ scale: 1.08, boxShadow: "0 0 20px rgba(99,102,241,0.5)" }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    {logoSquare
+                      ? <img src={logoSquare} alt="logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                      : <span className="font-display font-bold text-sm text-white">W</span>
+                    }
+                  </motion.div>
+                  <span className="font-display font-bold text-base text-snow tracking-tight">Websevix</span>
+                </>
+        }
 
         {mobile && (
           <button onClick={onMobileClose} className="ml-auto text-slate hover:text-silver p-1">

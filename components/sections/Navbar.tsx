@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,22 +62,26 @@ export default function Navbar() {
             transition={{ duration: 0.9, ease: EXPO, delay: 0.25 }}
           >
             <Link href="/" className="flex items-center gap-2.5 group">
-              <motion.div
-                className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden flex-shrink-0"
-                style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
-                whileHover={rm ? {} : { scale: 1.08, rotate: 5 }}
-                transition={{ duration: 0.5, ease: EXPO }}
-              >
-                {logoSquare
-                  ? <Image src={logoSquare} alt="logo" width={32} height={32} className="w-full h-full object-contain" unoptimized />
-                  : <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
-                }
-              </motion.div>
               {logoWide
-                ? <Image src={logoWide} alt="Websevix" width={130} height={30} className="h-6 w-auto object-contain" unoptimized />
-                : <span className="font-display font-bold text-[17px] text-snow tracking-tight">Websevix</span>
+                /* Wide logo → show it alone (it already has icon+text) */
+                ? <img src={logoWide} alt="Websevix" style={{ height: 32, width: "auto", objectFit: "contain" }} />
+                /* No wide logo → show square icon + text */
+                : <>
+                    <motion.div
+                      className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden flex-shrink-0"
+                      style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+                      whileHover={rm ? {} : { scale: 1.08, rotate: 5 }}
+                      transition={{ duration: 0.5, ease: EXPO }}
+                    >
+                      {logoSquare
+                        ? <img src={logoSquare} alt="logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                        : <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                          </svg>
+                      }
+                    </motion.div>
+                    <span className="font-display font-bold text-[17px] text-snow tracking-tight">Websevix</span>
+                  </>
               }
             </Link>
           </motion.div>
@@ -168,18 +171,20 @@ export default function Navbar() {
             >
               <div className="flex items-center justify-between mb-10">
                 <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-                  <div
-                    className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden"
-                    style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
-                  >
-                    {logoSquare
-                      ? <Image src={logoSquare} alt="logo" width={32} height={32} className="w-full h-full object-contain" unoptimized />
-                      : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                    }
-                  </div>
                   {logoWide
-                    ? <Image src={logoWide} alt="Websevix" width={120} height={28} className="h-6 w-auto object-contain" unoptimized />
-                    : <span className="font-display font-bold text-base text-snow">Websevix</span>
+                    ? <img src={logoWide} alt="Websevix" style={{ height: 30, width: "auto", objectFit: "contain" }} />
+                    : <>
+                        <div
+                          className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden"
+                          style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+                        >
+                          {logoSquare
+                            ? <img src={logoSquare} alt="logo" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                            : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                          }
+                        </div>
+                        <span className="font-display font-bold text-base text-snow">Websevix</span>
+                      </>
                   }
                 </Link>
                 <button type="button" onClick={() => setOpen(false)} className="p-2 rounded-lg text-slate hover:text-snow">

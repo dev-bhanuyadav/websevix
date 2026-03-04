@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -187,7 +186,7 @@ export default function AdminLoginPage() {
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             >
               {logoSquare
-                ? <Image src={logoSquare} alt="logo" width={64} height={64} className="w-full h-full object-contain" unoptimized />
+                ? <img src={logoSquare} alt="logo" style={{ width: 64, height: 64, objectFit: "contain" }} />
                 : "W"
               }
             </motion.div>
@@ -197,7 +196,7 @@ export default function AdminLoginPage() {
           </div>
 
           {logoWide
-            ? <Image src={logoWide} alt="Websevix" width={160} height={40} className="h-8 w-auto object-contain mb-1" unoptimized />
+            ? <img src={logoWide} alt="Websevix" style={{ height: 36, width: "auto", objectFit: "contain", marginBottom: 4 }} />
             : <h1 className="font-display font-bold text-2xl text-white tracking-tight mb-1">Websevix</h1>
           }
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full"

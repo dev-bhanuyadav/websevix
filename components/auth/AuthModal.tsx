@@ -7,7 +7,6 @@ import { useAuthFlow, type RegisterData } from "@/hooks/useAuthFlow";
 import { useBlast, type BlastPhase } from "@/hooks/useBlast";
 import { useAuth } from "@/hooks/useAuth";
 import { BlastCanvas, type BlastCanvasHandle } from "./BlastCanvas";
-import Image from "next/image";
 import { EmailStep }           from "./EmailStep";
 import { LoginPasswordStep }   from "./LoginPasswordStep";
 import { SignupFormStep }       from "./SignupFormStep";
@@ -381,7 +380,7 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                   >
                     <Link href="/">
                       {logoWide
-                        ? <Image src={logoWide} alt="Websevix" width={120} height={28} className="h-6 w-auto object-contain" unoptimized />
+                        ? <img src={logoWide} alt="Websevix" style={{ height: 24, width: "auto", objectFit: "contain" }} />
                         : <span className="font-display font-bold text-lg text-snow tracking-tight">Websevix</span>
                       }
                     </Link>

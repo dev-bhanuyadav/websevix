@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings,
@@ -16,7 +15,6 @@ import {
   Shield,
   ToggleLeft,
   ImageIcon,
-  Upload,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -198,13 +196,10 @@ export default function AdminSettingsPage() {
   };
 
   // Branding
-  const [logoWide,   setLogoWide]   = useState("");
-  const [logoSquare, setLogoSquare] = useState("");
-  const [uploadingWide,   setUploadingWide]   = useState(false);
-  const [uploadingSquare, setUploadingSquare] = useState(false);
+  const [logoWide,    setLogoWide]    = useState("");
+  const [logoSquare,  setLogoSquare]  = useState("");
+  const [savingBranding, setSavingBranding] = useState(false);
   const [brandingResult, setBrandingResult] = useState<{ ok: boolean; msg: string } | null>(null);
-  const wideInputRef   = useRef<HTMLInputElement>(null);
-  const squareInputRef = useRef<HTMLInputElement>(null);
 
   // Load existing logos
   useEffect(() => {
@@ -217,32 +212,26 @@ export default function AdminSettingsPage() {
       .catch(() => {});
   }, []);
 
-  const uploadLogo = async (file: File, type: "wide" | "square") => {
+  const saveBranding = async () => {
     if (!accessToken) return;
-    const setter  = type === "wide" ? setUploadingWide   : setUploadingSquare;
-    const preview = type === "wide" ? setLogoWide        : setLogoSquare;
-    setter(true);
+    setSavingBranding(true);
     setBrandingResult(null);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("type", type);
-      const res = await fetch("/api/admin/logo", {
+      const res = await fetch("/api/admin/branding", {
         method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        body: fd,
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ logoWide: logoWide.trim(), logoSquare: logoSquare.trim() }),
       });
-      const d = await res.json() as { success?: boolean; url?: string; error?: string };
-      if (d.success && d.url) {
-        preview(d.url);
-        setBrandingResult({ ok: true, msg: `${type === "wide" ? "Wide" : "Square"} logo uploaded successfully!` });
+      const d = await res.json() as { success?: boolean; error?: string };
+      if (d.success) {
+        setBrandingResult({ ok: true, msg: "Logos saved! Refresh the page to see changes everywhere." });
       } else {
-        setBrandingResult({ ok: false, msg: d.error ?? "Upload failed" });
+        setBrandingResult({ ok: false, msg: d.error ?? "Failed to save" });
       }
     } catch {
-      setBrandingResult({ ok: false, msg: "Network error during upload" });
+      setBrandingResult({ ok: false, msg: "Network error" });
     } finally {
-      setter(false);
+      setSavingBranding(false);
     }
   };
 
@@ -616,88 +605,62 @@ export default function AdminSettingsPage() {
             >
               <div>
                 <h3 className="text-sm font-semibold font-display text-snow">Branding</h3>
-                <p className="text-xs text-slate mt-0.5">Upload logos used across the platform. Max 2 MB · PNG / JPG / SVG / WEBP</p>
+                <p className="text-xs text-slate mt-0.5">Paste image URLs for your logos. Use Imgur, Cloudinary, Google Drive or any direct image link.</p>
               </div>
 
               {/* Wide Logo */}
               <div className="space-y-3">
                 <label className="text-xs text-slate font-medium uppercase tracking-wider block">
-                  Wide Logo <span className="normal-case text-slate/60">(Header / Navbar — e.g. 200×50 px)</span>
+                  Wide Logo URL <span className="normal-case text-slate/60">(Navbar / Header — has icon + text)</span>
                 </label>
+                <input
+                  type="url"
+                  value={logoWide}
+                  onChange={e => setLogoWide(e.target.value)}
+                  placeholder="https://i.imgur.com/your-wide-logo.png"
+                  className="w-full px-3 py-2.5 text-sm text-snow rounded-xl outline-none placeholder:text-slate transition-all"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
+                />
+                {/* Preview */}
                 <div
-                  className="flex items-center gap-4 p-4 rounded-xl"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  className="flex items-center justify-center h-14 rounded-xl overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
                 >
-                  <div
-                    className="flex-shrink-0 w-44 h-14 rounded-lg flex items-center justify-center overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-                  >
-                    {logoWide ? (
-                      <Image src={logoWide} alt="Wide logo" width={176} height={56} className="object-contain w-full h-full" unoptimized />
-                    ) : (
-                      <span className="text-xs text-slate">No logo yet</span>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <p className="text-xs text-silver">Used in: Sidebar header, Admin sidebar</p>
-                    <button
-                      onClick={() => wideInputRef.current?.click()}
-                      disabled={uploadingWide}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
-                      style={{ background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)", color: "#A5B4FC" }}
-                    >
-                      {uploadingWide ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-                      {uploadingWide ? "Uploading…" : "Choose File"}
-                    </button>
-                    <input
-                      ref={wideInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                      className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f, "wide"); e.target.value = ""; }}
-                    />
-                  </div>
+                  {logoWide
+                    ? <img src={logoWide} alt="Wide logo preview" style={{ maxHeight: 48, maxWidth: "90%", objectFit: "contain" }}
+                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    : <span className="text-xs text-slate">Preview will appear here</span>
+                  }
                 </div>
+                <p className="text-xs text-slate">Used in: Navbar, Sidebar (expanded), Login page</p>
               </div>
 
               {/* Square Logo */}
               <div className="space-y-3">
                 <label className="text-xs text-slate font-medium uppercase tracking-wider block">
-                  Square Logo <span className="normal-case text-slate/60">(Icon / Favicon / Loading screen — e.g. 64×64 px)</span>
+                  Square Logo URL <span className="normal-case text-slate/60">(Icon only — shown when collapsed)</span>
                 </label>
-                <div
-                  className="flex items-center gap-4 p-4 rounded-xl"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
-                >
+                <input
+                  type="url"
+                  value={logoSquare}
+                  onChange={e => setLogoSquare(e.target.value)}
+                  placeholder="https://i.imgur.com/your-square-logo.png"
+                  className="w-full px-3 py-2.5 text-sm text-snow rounded-xl outline-none placeholder:text-slate transition-all"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
+                />
+                {/* Preview */}
+                <div className="flex items-center gap-4">
                   <div
-                    className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
                   >
-                    {logoSquare ? (
-                      <Image src={logoSquare} alt="Square logo" width={56} height={56} className="object-contain w-full h-full" unoptimized />
-                    ) : (
-                      <span className="text-xs text-slate font-bold">W</span>
-                    )}
+                    {logoSquare
+                      ? <img src={logoSquare} alt="Square logo preview" style={{ width: 48, height: 48, objectFit: "contain" }}
+                          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      : <span className="text-xs text-slate font-bold">W</span>
+                    }
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <p className="text-xs text-silver">Used in: Favicon, loading spinner, login page icon</p>
-                    <button
-                      onClick={() => squareInputRef.current?.click()}
-                      disabled={uploadingSquare}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
-                      style={{ background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)", color: "#A5B4FC" }}
-                    >
-                      {uploadingSquare ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-                      {uploadingSquare ? "Uploading…" : "Choose File"}
-                    </button>
-                    <input
-                      ref={squareInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                      className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f, "square"); e.target.value = ""; }}
-                    />
-                  </div>
+                  <p className="text-xs text-slate">Used in: Sidebar icon (collapsed), Favicon, Login animation</p>
                 </div>
               </div>
 
@@ -720,13 +683,27 @@ export default function AdminSettingsPage() {
                 )}
               </AnimatePresence>
 
-              {/* Hint */}
+              <button
+                onClick={saveBranding}
+                disabled={savingBranding}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, #6366F1, #4F46E5)", color: "#fff" }}
+              >
+                {savingBranding ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Save Logos
+              </button>
+
+              {/* How to get URL hint */}
               <div
-                className="rounded-xl p-3 text-xs text-slate space-y-1"
+                className="rounded-xl p-4 text-xs text-slate space-y-2"
                 style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.12)" }}
               >
-                <p className="font-semibold text-indigo-300/80">After uploading:</p>
-                <p>Changes appear instantly across all pages. Favicon updates after page refresh.</p>
+                <p className="font-semibold text-indigo-300/80">How to get an image URL:</p>
+                <ol className="space-y-1 list-decimal list-inside">
+                  <li><span className="text-silver">Imgur:</span> imgur.com → upload → right-click image → &quot;Copy image address&quot;</li>
+                  <li><span className="text-silver">Cloudinary:</span> upload image → copy the delivery URL</li>
+                  <li><span className="text-silver">Any host:</span> paste any direct <code className="text-indigo-400">.png / .jpg / .svg / .webp</code> URL</li>
+                </ol>
               </div>
             </div>
           </motion.div>
