@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import {
   LayoutDashboard, Sparkles, Package, MessageSquare,
   User, LogOut, ChevronLeft, ChevronRight, X, Menu, Shield,
@@ -29,6 +31,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { logoWide, logoSquare } = useSiteSettings();
 
   const isActive = (href: string) =>
     href === "/dashboard/client" ? pathname === href : pathname.startsWith(href);
@@ -45,17 +48,26 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 px-5 py-5 border-b border-white/[0.06] ${collapsed && !mobile ? "justify-center px-0" : ""}`}>
+        {/* Square icon — shown always */}
         <motion.div
-          className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+          className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
+          style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
           whileHover={{ scale: 1.08, boxShadow: "0 0 20px rgba(99,102,241,0.5)" }}
           transition={{ type: "spring", stiffness: 400 }}
         >
-          <span className="font-display font-bold text-sm text-white">W</span>
+          {logoSquare
+            ? <Image src={logoSquare} alt="logo" width={32} height={32} className="object-contain w-full h-full" unoptimized />
+            : <span className="font-display font-bold text-sm text-white">W</span>
+          }
         </motion.div>
+
+        {/* Wide logo or text — shown when not collapsed */}
         {(!collapsed || mobile) && (
-          <span className="font-display font-bold text-base text-snow tracking-tight">Websevix</span>
+          logoWide
+            ? <Image src={logoWide} alt="Websevix" width={140} height={32} className="object-contain h-7 w-auto" unoptimized />
+            : <span className="font-display font-bold text-base text-snow tracking-tight">Websevix</span>
         )}
+
         {mobile && (
           <button onClick={onMobileClose} className="ml-auto text-slate hover:text-silver p-1">
             <X size={18} />

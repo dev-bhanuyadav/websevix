@@ -1,12 +1,26 @@
 "use client";
 
 interface LogoMarkProps {
-  size?: number;
-  color?: string;
+  size?:     number;
+  color?:    string;
   className?: string;
+  logoUrl?:  string; // when set, shows actual logo image instead of SVG W
 }
 
-export function LogoMark({ size = 40, color = "white", className }: LogoMarkProps) {
+export function LogoMark({ size = 40, color = "white", className, logoUrl }: LogoMarkProps) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoUrl}
+        alt="logo"
+        width={size}
+        height={size}
+        className={className}
+        style={{ objectFit: "contain", width: size, height: size }}
+      />
+    );
+  }
   return (
     <svg
       width={size}

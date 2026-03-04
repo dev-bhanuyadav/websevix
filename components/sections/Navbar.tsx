@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -21,6 +23,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const rm = useReducedMotion();
   const router = useRouter();
+  const { logoWide, logoSquare } = useSiteSettings();
 
   const goAuth = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -61,17 +64,22 @@ export default function Navbar() {
           >
             <Link href="/" className="flex items-center gap-2.5 group">
               <motion.div
-                className="w-8 h-8 rounded-[9px] bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center"
+                className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden flex-shrink-0"
+                style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
                 whileHover={rm ? {} : { scale: 1.08, rotate: 5 }}
                 transition={{ duration: 0.5, ease: EXPO }}
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
+                {logoSquare
+                  ? <Image src={logoSquare} alt="logo" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                  : <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                }
               </motion.div>
-              <span className="font-display font-bold text-[17px] text-snow tracking-tight">
-                Websevix
-              </span>
+              {logoWide
+                ? <Image src={logoWide} alt="Websevix" width={130} height={30} className="h-6 w-auto object-contain" unoptimized />
+                : <span className="font-display font-bold text-[17px] text-snow tracking-tight">Websevix</span>
+              }
             </Link>
           </motion.div>
 
@@ -160,10 +168,19 @@ export default function Navbar() {
             >
               <div className="flex items-center justify-between mb-10">
                 <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-                  <div className="w-8 h-8 rounded-[9px] bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                  <div
+                    className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden"
+                    style={logoSquare ? {} : { background: "linear-gradient(135deg,#6366F1,#8B5CF6)" }}
+                  >
+                    {logoSquare
+                      ? <Image src={logoSquare} alt="logo" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                      : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M3 8h7M3 11h8" stroke="white" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                    }
                   </div>
-                  <span className="font-display font-bold text-base text-snow">Websevix</span>
+                  {logoWide
+                    ? <Image src={logoWide} alt="Websevix" width={120} height={28} className="h-6 w-auto object-contain" unoptimized />
+                    : <span className="font-display font-bold text-base text-snow">Websevix</span>
+                  }
                 </Link>
                 <button type="button" onClick={() => setOpen(false)} className="p-2 rounded-lg text-slate hover:text-snow">
                   <X className="w-5 h-5" />

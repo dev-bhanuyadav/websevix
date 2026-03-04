@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import {
   LayoutDashboard,
   Package,
@@ -59,6 +61,7 @@ export default function AdminSidebar({
   const { logout } = useAuth();
 
   const navItems = NAV_ITEMS(pendingOrdersCount, unreadMessagesCount);
+  const { logoWide, logoSquare } = useSiteSettings();
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
@@ -95,15 +98,18 @@ export default function AdminSidebar({
               opacity: 0.35,
             }}
           />
-          {/* W Icon */}
+          {/* Square icon */}
           <div
-            className="relative z-10 flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 font-display font-bold text-base text-white select-none"
-            style={{ background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)" }}
+            className="relative z-10 flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden"
+            style={logoSquare ? {} : { background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)" }}
           >
-            W
+            {logoSquare
+              ? <Image src={logoSquare} alt="logo" width={36} height={36} className="object-contain w-full h-full" unoptimized />
+              : <span className="font-display font-bold text-base text-white select-none">W</span>
+            }
           </div>
 
-          {/* Brand text */}
+          {/* Brand text / wide logo */}
           <div
             className="overflow-hidden flex items-center gap-2 ml-3 whitespace-nowrap"
             style={{
@@ -112,7 +118,10 @@ export default function AdminSidebar({
               transition: "max-width 0.25s cubic-bezier(0.16,1,0.3,1), opacity 0.2s",
             }}
           >
-            <span className="font-display font-bold text-snow text-base">Websevix</span>
+            {logoWide
+              ? <Image src={logoWide} alt="Websevix" width={120} height={28} className="object-contain h-6 w-auto" unoptimized />
+              : <span className="font-display font-bold text-snow text-base">Websevix</span>
+            }
             <span
               className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
               style={{

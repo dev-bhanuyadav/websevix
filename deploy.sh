@@ -81,10 +81,22 @@ npm run build
 echo "→ Copying static assets..."
 # _next/static = Nginx alias path (/_next/static/ → standalone/_next/static/)
 rm -rf .next/standalone/_next
-rm -rf .next/standalone/public
 mkdir -p .next/standalone/_next
-cp -r .next/static  .next/standalone/_next/static
-cp -r public        .next/standalone/public
+cp -r .next/static .next/standalone/_next/static
+
+# Preserve runtime-uploaded logos before overwriting public/
+UPLOADS_BACKUP="/tmp/websevix_uploads_backup"
+if [ -d ".next/standalone/public/uploads" ]; then
+  cp -r .next/standalone/public/uploads "$UPLOADS_BACKUP" 2>/dev/null && echo "   Backed up uploads/"
+fi
+rm -rf .next/standalone/public
+cp -r public .next/standalone/public
+# Restore runtime uploads (logos uploaded via admin panel)
+if [ -d "$UPLOADS_BACKUP" ]; then
+  mkdir -p .next/standalone/public/uploads
+  cp -r "$UPLOADS_BACKUP/." .next/standalone/public/uploads/ 2>/dev/null && echo "   Restored uploads/"
+  rm -rf "$UPLOADS_BACKUP"
+fi
 echo "   CSS files: $(ls .next/standalone/_next/static/css/ 2>/dev/null | wc -l)"
 echo "   JS chunks: $(ls .next/standalone/_next/static/chunks/ 2>/dev/null | wc -l)"
 

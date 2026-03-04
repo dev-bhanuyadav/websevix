@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 // ─── Particle background canvas ──────────────────────────────────
 function ParticleCanvas() {
@@ -75,6 +77,7 @@ function ParticleCanvas() {
 // ─── Main Login Page ──────────────────────────────────────────────
 export default function AdminLoginPage() {
   const { login } = useAuth();
+  const { logoSquare, logoWide } = useSiteSettings();
   const [email,     setEmail]     = useState("");
   const [password,  setPassword]  = useState("");
   const [showPass,  setShowPass]  = useState(false);
@@ -175,22 +178,28 @@ export default function AdminLoginPage() {
           {/* Logo mark */}
           <div className="relative mb-4">
             <motion.div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl text-white"
+              className="w-16 h-16 rounded-2xl flex items-center justify-center font-display font-black text-2xl text-white overflow-hidden"
               style={{
-                background:  "linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #06B6D4 100%)",
+                background: logoSquare ? "transparent" : "linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #06B6D4 100%)",
                 boxShadow:   "0 0 40px rgba(99,102,241,0.5), 0 0 80px rgba(99,102,241,0.2)",
               }}
               animate={{ boxShadow: ["0 0 40px rgba(99,102,241,0.5), 0 0 80px rgba(99,102,241,0.2)", "0 0 60px rgba(99,102,241,0.7), 0 0 100px rgba(99,102,241,0.3)", "0 0 40px rgba(99,102,241,0.5), 0 0 80px rgba(99,102,241,0.2)"] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             >
-              W
+              {logoSquare
+                ? <Image src={logoSquare} alt="logo" width={64} height={64} className="w-full h-full object-contain" unoptimized />
+                : "W"
+              }
             </motion.div>
             {/* Orbit ring */}
             <div className="absolute inset-0 rounded-2xl"
               style={{ border: "1px solid rgba(99,102,241,0.3)", boxShadow: "0 0 20px rgba(99,102,241,0.15)" }} />
           </div>
 
-          <h1 className="font-display font-bold text-2xl text-white tracking-tight mb-1">Websevix</h1>
+          {logoWide
+            ? <Image src={logoWide} alt="Websevix" width={160} height={40} className="h-8 w-auto object-contain mb-1" unoptimized />
+            : <h1 className="font-display font-bold text-2xl text-white tracking-tight mb-1">Websevix</h1>
+          }
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full"
             style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
             <ShieldCheck size={12} className="text-red-400" />

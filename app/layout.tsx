@@ -24,6 +24,11 @@ export const metadata: Metadata = {
     "Post your project, receive proposals from vetted developers, and ship faster — all backed by milestone-based escrow.",
   keywords: ["web development", "hire developers", "escrow payments", "milestone projects"],
   authors: [{ name: "Websevix" }],
+  icons: {
+    icon:      "/api/site-settings/icon",
+    shortcut:  "/api/site-settings/icon",
+    apple:     "/api/site-settings/icon",
+  },
   openGraph: {
     title: "Websevix — Where Great Web Projects Get Built",
     description: "Post your project, receive proposals from vetted developers, and pay securely.",
@@ -36,15 +41,18 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/context/AuthContext";
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans bg-base text-snow antialiased">
-        <AuthProvider>
-          <div className="noise-overlay" aria-hidden />
-          {children}
-        </AuthProvider>
+        <SiteSettingsProvider>
+          <AuthProvider>
+            <div className="noise-overlay" aria-hidden />
+            {children}
+          </AuthProvider>
+        </SiteSettingsProvider>
       </body>
     </html>
   );

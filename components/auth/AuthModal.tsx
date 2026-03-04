@@ -7,12 +7,14 @@ import { useAuthFlow, type RegisterData } from "@/hooks/useAuthFlow";
 import { useBlast, type BlastPhase } from "@/hooks/useBlast";
 import { useAuth } from "@/hooks/useAuth";
 import { BlastCanvas, type BlastCanvasHandle } from "./BlastCanvas";
+import Image from "next/image";
 import { EmailStep }           from "./EmailStep";
 import { LoginPasswordStep }   from "./LoginPasswordStep";
 import { SignupFormStep }       from "./SignupFormStep";
 import { SuccessStep }          from "./SuccessStep";
 import { VerifyAnimation, type ButtonOrigin } from "./VerifyAnimation";
 import { stepForwardVariants, stepBackwardVariants, modalVariants } from "@/lib/animations";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const API = "/api/auth";
 
@@ -26,6 +28,7 @@ interface AuthModalProps {
 export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }: AuthModalProps) {
   const prefersReduced = useReducedMotion();
   const { login } = useAuth();
+  const { logoWide } = useSiteSettings();
   const { phase, origin, trigger, reset: resetBlast } = useBlast();
   const {
     state, setEmail, setUserExists, setUserNew,
@@ -376,8 +379,11 @@ export function AuthModal({ defaultMode = "login", onSuccess, autoBlast = true }
                     animate={phase === "ambient" ? { y: [0, -4, 0] } : {}}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <Link href="/" className="font-display font-bold text-lg text-snow tracking-tight">
-                      Websevix
+                    <Link href="/">
+                      {logoWide
+                        ? <Image src={logoWide} alt="Websevix" width={120} height={28} className="h-6 w-auto object-contain" unoptimized />
+                        : <span className="font-display font-bold text-lg text-snow tracking-tight">Websevix</span>
+                      }
                     </Link>
                   </motion.div>
                   <Link href="/" className="text-xs text-slate hover:text-silver transition-colors px-3 py-1 rounded-lg hover:bg-white/[0.04]">

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { createPortal } from "react-dom";
 import { LogoMark } from "./LogoMark";
 import { SparkBurst } from "./SparkBurst";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type AnimPhase =
@@ -49,6 +50,7 @@ export function VerifyAnimation({
   const [mounted, setMounted]           = useState(false);
   const [sparkTrigger, setSparkTrigger] = useState(0);
   const [sparkPos, setSparkPos]         = useState({ x: 0, y: 0 });
+  const { logoSquare } = useSiteSettings();
 
   const phaseRef = useRef<AnimPhase>("IDLE");
   const apiRef   = useRef<"success" | "error" | null>(null);
@@ -224,7 +226,7 @@ export function VerifyAnimation({
           }}
           transition={logoTrans()}
         >
-          <LogoMark size={LOGO_SIZE - 8} color={logoColor} />
+          <LogoMark size={LOGO_SIZE - 8} color={logoColor} logoUrl={logoSquare || undefined} />
         </motion.div>
 
         {/* Light streak following logo during ascent */}

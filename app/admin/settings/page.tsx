@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings,
@@ -14,10 +15,12 @@ import {
   EyeOff,
   Shield,
   ToggleLeft,
+  ImageIcon,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-type Tab = "platform" | "profile" | "payment";
+type Tab = "platform" | "profile" | "payment" | "branding";
 
 interface PlatformSettings {
   platformName: string;
@@ -29,6 +32,7 @@ const TAB_CONFIG: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "platform", label: "Platform", icon: Settings },
   { id: "profile", label: "Admin Profile", icon: User },
   { id: "payment", label: "Payment", icon: CreditCard },
+  { id: "branding", label: "Branding", icon: ImageIcon },
 ];
 
 function InputField({
@@ -190,6 +194,55 @@ export default function AdminSettingsPage() {
       setPlatformResult({ ok: false, msg: "Network error" });
     } finally {
       setSavingPlatform(false);
+    }
+  };
+
+  // Branding
+  const [logoWide,   setLogoWide]   = useState("");
+  const [logoSquare, setLogoSquare] = useState("");
+  const [uploadingWide,   setUploadingWide]   = useState(false);
+  const [uploadingSquare, setUploadingSquare] = useState(false);
+  const [brandingResult, setBrandingResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const wideInputRef   = useRef<HTMLInputElement>(null);
+  const squareInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing logos
+  useEffect(() => {
+    fetch("/api/site-settings")
+      .then(r => r.json())
+      .then((d: { logoWide?: string; logoSquare?: string }) => {
+        if (d.logoWide)   setLogoWide(d.logoWide);
+        if (d.logoSquare) setLogoSquare(d.logoSquare);
+      })
+      .catch(() => {});
+  }, []);
+
+  const uploadLogo = async (file: File, type: "wide" | "square") => {
+    if (!accessToken) return;
+    const setter  = type === "wide" ? setUploadingWide   : setUploadingSquare;
+    const preview = type === "wide" ? setLogoWide        : setLogoSquare;
+    setter(true);
+    setBrandingResult(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("type", type);
+      const res = await fetch("/api/admin/logo", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: fd,
+      });
+      const d = await res.json() as { success?: boolean; url?: string; error?: string };
+      if (d.success && d.url) {
+        preview(d.url);
+        setBrandingResult({ ok: true, msg: `${type === "wide" ? "Wide" : "Square"} logo uploaded successfully!` });
+      } else {
+        setBrandingResult({ ok: false, msg: d.error ?? "Upload failed" });
+      }
+    } catch {
+      setBrandingResult({ ok: false, msg: "Network error during upload" });
+    } finally {
+      setter(false);
     }
   };
 
@@ -545,6 +598,135 @@ export default function AdminSettingsPage() {
                     Add <code className="text-indigo-400 bg-indigo-500/10 px-1 rounded">RAZORPAY_WEBHOOK_SECRET</code> for signature verification
                   </li>
                 </ul>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        {activeTab === "branding" && (
+          <motion.div
+            key="branding"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div
+              className="rounded-2xl p-6 space-y-6"
+              style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <div>
+                <h3 className="text-sm font-semibold font-display text-snow">Branding</h3>
+                <p className="text-xs text-slate mt-0.5">Upload logos used across the platform. Max 2 MB · PNG / JPG / SVG / WEBP</p>
+              </div>
+
+              {/* Wide Logo */}
+              <div className="space-y-3">
+                <label className="text-xs text-slate font-medium uppercase tracking-wider block">
+                  Wide Logo <span className="normal-case text-slate/60">(Header / Navbar — e.g. 200×50 px)</span>
+                </label>
+                <div
+                  className="flex items-center gap-4 p-4 rounded-xl"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                >
+                  <div
+                    className="flex-shrink-0 w-44 h-14 rounded-lg flex items-center justify-center overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  >
+                    {logoWide ? (
+                      <Image src={logoWide} alt="Wide logo" width={176} height={56} className="object-contain w-full h-full" unoptimized />
+                    ) : (
+                      <span className="text-xs text-slate">No logo yet</span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs text-silver">Used in: Sidebar header, Admin sidebar</p>
+                    <button
+                      onClick={() => wideInputRef.current?.click()}
+                      disabled={uploadingWide}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+                      style={{ background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)", color: "#A5B4FC" }}
+                    >
+                      {uploadingWide ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                      {uploadingWide ? "Uploading…" : "Choose File"}
+                    </button>
+                    <input
+                      ref={wideInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f, "wide"); e.target.value = ""; }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Square Logo */}
+              <div className="space-y-3">
+                <label className="text-xs text-slate font-medium uppercase tracking-wider block">
+                  Square Logo <span className="normal-case text-slate/60">(Icon / Favicon / Loading screen — e.g. 64×64 px)</span>
+                </label>
+                <div
+                  className="flex items-center gap-4 p-4 rounded-xl"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                >
+                  <div
+                    className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  >
+                    {logoSquare ? (
+                      <Image src={logoSquare} alt="Square logo" width={56} height={56} className="object-contain w-full h-full" unoptimized />
+                    ) : (
+                      <span className="text-xs text-slate font-bold">W</span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs text-silver">Used in: Favicon, loading spinner, login page icon</p>
+                    <button
+                      onClick={() => squareInputRef.current?.click()}
+                      disabled={uploadingSquare}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+                      style={{ background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)", color: "#A5B4FC" }}
+                    >
+                      {uploadingSquare ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                      {uploadingSquare ? "Uploading…" : "Choose File"}
+                    </button>
+                    <input
+                      ref={squareInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f, "square"); e.target.value = ""; }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <AnimatePresence>
+                {brandingResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium ${
+                      brandingResult.ok
+                        ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
+                        : "text-red-400 bg-red-500/10 border border-red-500/20"
+                    }`}
+                  >
+                    {brandingResult.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                    {brandingResult.msg}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Hint */}
+              <div
+                className="rounded-xl p-3 text-xs text-slate space-y-1"
+                style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.12)" }}
+              >
+                <p className="font-semibold text-indigo-300/80">After uploading:</p>
+                <p>Changes appear instantly across all pages. Favicon updates after page refresh.</p>
               </div>
             </div>
           </motion.div>
