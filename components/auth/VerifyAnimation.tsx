@@ -226,7 +226,7 @@ export function VerifyAnimation({
           }}
           transition={logoTrans()}
         >
-          <LogoMark size={LOGO_SIZE - 8} color={logoColor} logoUrl={logoSquare || undefined} colorize={!logoSquare} />
+          <LogoMark size={LOGO_SIZE - 8} color={logoColor} logoUrl={logoSquare || undefined} />
         </motion.div>
 
         {/* Light streak following logo during ascent */}
