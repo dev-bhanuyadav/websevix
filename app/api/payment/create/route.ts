@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { jsonResponse } from "@/lib/api";
 import { verifyAccessToken } from "@/lib/jwt";
-import { getRazorpay } from "@/lib/razorpay";
+import { getRazorpay, razorpayErrMsg } from "@/lib/razorpay";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (e) {
-    console.error("[payment/create]", e);
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = razorpayErrMsg(e);
+    console.error("[payment/create]", msg, e);
     if (msg.includes("jwt") || msg.includes("Unauthorized")) return jsonResponse({ error: "Session expired. Please log in again." }, 401);
     if (msg.includes("keys missing"))                        return jsonResponse({ error: "Payment gateway not configured. Contact support." }, 500);
-    return jsonResponse({ error: "Could not create payment order. Please try again." }, 500);
+    return jsonResponse({ error: `Payment failed: ${msg}` }, 500);
   }
 }

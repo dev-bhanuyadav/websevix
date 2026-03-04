@@ -6,7 +6,7 @@ import { verifyAccessToken } from "@/lib/jwt";
 import { ClientService } from "@/models/ClientService";
 import { Service } from "@/models/Service";
 import { User } from "@/models/User";
-import { getRazorpay } from "@/lib/razorpay";
+import { getRazorpay, razorpayErrMsg } from "@/lib/razorpay";
 
 /**
  * POST /api/client/services/pay-monthly
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (rzErr: unknown) {
-      const msg = rzErr instanceof Error ? rzErr.message : String(rzErr);
-      console.error("[pay-monthly] Razorpay API error:", msg);
-      return jsonResponse({ error: `Razorpay error: ${msg}` }, 500);
+      const msg = razorpayErrMsg(rzErr);
+      console.error("[pay-monthly] Razorpay error:", msg, rzErr);
+      return jsonResponse({ error: `Payment failed: ${msg}` }, 500);
     }
 
     return jsonResponse({
