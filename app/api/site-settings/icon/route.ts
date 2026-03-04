@@ -4,17 +4,18 @@ import { connectDB } from "@/lib/mongodb";
 import { SiteSettings } from "@/models/SiteSettings";
 
 /** GET /api/site-settings/icon
- *  Redirects to the square logo file so it can be used as dynamic favicon
+ *  Redirects to the square logo (external URL or local path) for use as favicon
  */
 export async function GET() {
   try {
     await connectDB();
     const s = await SiteSettings.findOne().lean() as { logoSquare?: string } | null;
     const url = s?.logoSquare?.split("?")[0]; // strip cache-bust query
-    if (url && url.startsWith("/")) {
-      return NextResponse.redirect(new URL(url, process.env.NEXTAUTH_URL || "http://localhost:3000"), 302);
+    if (url) {
+      // Both external URLs (https://...) and local paths (/uploads/...)
+      const dest = url.startsWith("http") ? url : `${process.env.NEXTAUTH_URL || "http://localhost:3000"}${url}`;
+      return NextResponse.redirect(dest, 302);
     }
   } catch { /* use default */ }
-  // No logo set — return 404 so browser uses its default
   return new NextResponse(null, { status: 404 });
 }

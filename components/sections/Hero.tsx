@@ -25,7 +25,7 @@ export default function Hero() {
   const rm = useReducedMotion();
 
   return (
-    <section id="home" className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-28 pb-24">
+    <section id="home" className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-16 pb-24">
 
       {/* ══ Background ══ */}
       <div className="absolute inset-0 bg-[#050510]">
@@ -143,18 +143,15 @@ export default function Hero() {
           No runaround — just a clear, human conversation and a site you’ll love.
         </motion.p>
 
-        {/* CTAs */}
+        {/* CTA */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-11"
+          className="flex items-center justify-center mb-11"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.0, ease: EXPO, delay: 1.9 }}
         >
-          <Link href="#contact" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
-            Chat with us <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link href="#how-it-works" className="btn-ghost inline-flex items-center gap-2 text-[15px] px-8 py-4 w-full sm:w-auto justify-center">
-            How it works
+          <Link href="/login" className="btn-primary btn-shimmer inline-flex items-center gap-2 text-[15px] px-10 py-4 w-full sm:w-auto justify-center">
+            Get Started <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
 
