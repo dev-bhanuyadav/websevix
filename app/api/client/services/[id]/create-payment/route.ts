@@ -56,7 +56,7 @@ export async function POST(
       order = await rz.orders.create({
         amount:   amountPaise,
         currency: "INR",
-        receipt:  `svc_${id}_${Date.now()}`,
+        receipt:  `svc_${Date.now()}`,
         notes: {
           clientServiceId: id,
           type: type === "first" ? "service_first" : "service_renewal",

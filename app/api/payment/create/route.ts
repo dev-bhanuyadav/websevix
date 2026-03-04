@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const order = await rz.orders.create({
       amount:   amountPaise,
       currency,
-      receipt:  `ws_${Date.now()}`,
+      receipt:  `ws_${Date.now()}`,  // max 40 chars — this is fine
     });
 
     return jsonResponse({

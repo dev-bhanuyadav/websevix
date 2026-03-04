@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       order = await rz.orders.create({
         amount:   totalPaise,
         currency: "INR",
-        receipt:  `monthly_${payload.userId}_${Date.now()}`,
+        receipt:  `mth_${Date.now()}`,
         notes: {
           userId:    payload.userId,
           type:      "service_monthly",
