@@ -68,11 +68,12 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 function ClientServicesInner() {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const [subs, setSubs] = useState<ClientSub[]>([]);
   const [invoices, setInvoices] = useState<IInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [payingMonthly, setPayingMonthly] = useState(false);
   const [paymentMsg, setPaymentMsg] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const rzpScriptLoaded = useRef(false);
 
@@ -233,10 +234,89 @@ function ClientServicesInner() {
     }
   };
 
+  // Monthly total payment — all pending + all due in one go
+  const openMonthlyPayment = async () => {
+    setPayingMonthly(true);
+    setPaymentMsg(null);
+    try {
+      const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        setPaymentMsg({ type: "error", text: "Payment gateway failed to load. Please refresh." });
+        return;
+      }
+
+      const r = await fetch("/api/client/services/pay-monthly", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const d = await r.json();
+
+      if (d.error || !d.success) {
+        setPaymentMsg({ type: "error", text: d.error || "Could not create payment." });
+        return;
+      }
+
+      const rzp = new window.Razorpay({
+        key:         d.keyId,
+        amount:      d.amount,
+        currency:    "INR",
+        order_id:    d.orderId,
+        name:        "Websevix",
+        description: `Monthly Services — ${d.servicesCount} service${d.servicesCount > 1 ? "s" : ""}`,
+        image:       "/logo.png",
+        prefill: {
+          name:  `${(user as any)?.firstName ?? ""} ${(user as any)?.lastName ?? ""}`.trim(),
+          email: (user as any)?.email ?? "",
+        },
+        theme: { color: "#6366F1" },
+        handler: async (response: RazorpaySuccessResponse) => {
+          try {
+            const vr = await fetch("/api/client/services/verify-payment", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+              body:    JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_signature:  response.razorpay_signature,
+              }),
+            });
+            const vd = await vr.json();
+            if (vd.success) {
+              setPaymentMsg({ type: "success", text: vd.message || "Payment successful! Services activated." });
+              load();
+            } else {
+              setPaymentMsg({ type: "error", text: vd.error || "Verification failed." });
+            }
+          } catch {
+            setPaymentMsg({ type: "error", text: "Verification error. Contact support." });
+          } finally {
+            setPayingMonthly(false);
+          }
+        },
+        modal: { ondismiss: () => setPayingMonthly(false) },
+      });
+      rzp.open();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Payment failed.";
+      setPaymentMsg({ type: "error", text: msg });
+      setPayingMonthly(false);
+    }
+  };
+
   const pending  = subs.filter(s => s && s.status === "pending_acceptance");
   const active   = subs.filter(s => s && s.status === "active");
   const others   = subs.filter(s => s && !["pending_acceptance", "active"].includes(s.status));
   const hasServices = subs.length > 0;
+
+  // Services that need payment right now
+  const needsPayment = [
+    ...pending,
+    ...active.filter(s => s.isDue),
+  ];
+  const monthlyTotal = needsPayment.reduce((sum, s) => {
+    const svc = s.serviceId;
+    return sum + (s.customPrice ?? svc?.basePrice ?? 0);
+  }, 0);
 
   if (loading) return (
     <div className="space-y-4">
@@ -248,9 +328,25 @@ function ClientServicesInner() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-display text-snow">My Services</h1>
-        <p className="text-sm text-slate mt-1">Pay for first month to activate, then pay each month when due</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold font-display text-snow">My Services</h1>
+          <p className="text-sm text-slate mt-1">Activate services and pay monthly to keep them running</p>
+        </div>
+
+        {/* Monthly total payment button — shows only when payment is due */}
+        {needsPayment.length > 0 && (
+          <button
+            onClick={openMonthlyPayment}
+            disabled={payingMonthly}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}>
+            {payingMonthly
+              ? <><Loader2 size={14} className="animate-spin" /> Processing…</>
+              : <><CreditCard size={14} /> Pay ₹{monthlyTotal.toLocaleString("en-IN")} for {needsPayment.length} service{needsPayment.length > 1 ? "s" : ""}</>
+            }
+          </button>
+        )}
       </div>
 
       {loadError && (

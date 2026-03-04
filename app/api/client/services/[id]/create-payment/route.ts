@@ -50,16 +50,23 @@ export async function POST(
     const keyId = process.env.RAZORPAY_KEY_ID;
     if (!keyId) return jsonResponse({ error: "Payment gateway not configured on server" }, 500);
 
-    const rz    = getRazorpay();
-    const order = await rz.orders.create({
-      amount:   amountPaise,
-      currency: "INR",
-      receipt:  `svc_${id}_${Date.now()}`,
-      notes: {
-        clientServiceId: id,
-        type: type === "first" ? "service_first" : "service_renewal",
-      },
-    });
+    let order;
+    try {
+      const rz = getRazorpay();
+      order = await rz.orders.create({
+        amount:   amountPaise,
+        currency: "INR",
+        receipt:  `svc_${id}_${Date.now()}`,
+        notes: {
+          clientServiceId: id,
+          type: type === "first" ? "service_first" : "service_renewal",
+        },
+      });
+    } catch (rzErr: unknown) {
+      const msg = rzErr instanceof Error ? rzErr.message : String(rzErr);
+      console.error("[create-payment] Razorpay API error:", msg);
+      return jsonResponse({ error: `Razorpay error: ${msg}` }, 500);
+    }
 
     return jsonResponse({
       success:     true,
@@ -71,10 +78,9 @@ export async function POST(
     });
 
   } catch (e) {
-    console.error("[create-payment]", e);
     const msg = e instanceof Error ? e.message : String(e);
+    console.error("[create-payment] Unexpected error:", msg);
     if (msg.includes("jwt") || msg.includes("Unauthorized")) return jsonResponse({ error: "Session expired. Please log in again." }, 401);
-    if (msg.includes("keys missing"))                         return jsonResponse({ error: "Payment gateway not configured. Contact support." }, 500);
-    return jsonResponse({ error: "Could not create payment order. Please try again." }, 500);
+    return jsonResponse({ error: `Could not create payment order: ${msg}` }, 500);
   }
 }
