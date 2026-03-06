@@ -10,7 +10,7 @@ interface TicketReplyInputProps {
   accessToken?: string | null;
 }
 
-export function TicketReplyInput({ onSend, disabled, placeholder = "Type your reply..." }: TicketReplyInputProps) {
+export function TicketReplyInput({ onSend, disabled, placeholder = "Type your reply...", accessToken }: TicketReplyInputProps) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
