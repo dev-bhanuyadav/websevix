@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import {
   LayoutDashboard, Sparkles, Package, MessageSquare,
-  User, LogOut, ChevronLeft, ChevronRight, X, Menu, Shield,
+  User, LogOut, ChevronLeft, ChevronRight, X, Menu, Shield, Ticket,
 } from "lucide-react";
 
 const NAV = [
@@ -17,6 +17,7 @@ const NAV = [
   { href: "/dashboard/client/orders",     label: "My Orders",   icon: Package },
   { href: "/dashboard/client/messages",   label: "Messages",    icon: MessageSquare },
   { href: "/dashboard/client/services",   label: "My Services", icon: Shield },
+  { href: "/dashboard/client/tickets",    label: "Support Tickets", icon: Ticket },
   { href: "/dashboard/client/profile",    label: "Profile",     icon: User },
 ];
 

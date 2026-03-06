@@ -19,6 +19,7 @@ import {
   ChevronRight,
   X,
   Shield,
+  Ticket,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -34,13 +35,15 @@ interface AdminSidebarProps {
   onMobileClose: () => void;
   pendingOrdersCount?: number;
   unreadMessagesCount?: number;
+  openTicketsCount?: number;
 }
 
-const NAV_ITEMS = (pendingOrdersCount: number, unreadMessagesCount: number): NavItem[] => [
+const NAV_ITEMS = (pendingOrdersCount: number, unreadMessagesCount: number, ticketsCount?: number): NavItem[] => [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: Package, badge: pendingOrdersCount },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Messages", href: "/admin/messages", icon: MessageSquare, badge: unreadMessagesCount },
+  { label: "Tickets", href: "/admin/tickets", icon: Ticket, badge: ticketsCount },
   { label: "Notifications", href: "/admin/notifications", icon: Bell },
   { label: "Payments", href: "/admin/payments", icon: CreditCard },
   { label: "Services", href: "/admin/services", icon: Shield },
@@ -53,13 +56,14 @@ export default function AdminSidebar({
   onMobileClose,
   pendingOrdersCount = 0,
   unreadMessagesCount = 0,
+  openTicketsCount = 0,
 }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
 
-  const navItems = NAV_ITEMS(pendingOrdersCount, unreadMessagesCount);
+  const navItems = NAV_ITEMS(pendingOrdersCount, unreadMessagesCount, openTicketsCount);
   const { logoWide, logoSquare } = useSiteSettings();
 
   const isActive = (href: string) =>

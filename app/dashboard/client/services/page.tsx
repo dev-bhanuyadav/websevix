@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback, useRef, Suspense } from "react
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, CreditCard, CheckCircle2, XCircle, Clock, AlertTriangle,
-  FileText, Loader2, X,
+  FileText, Loader2, X, Ticket,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { RaiseTicketModal } from "@/components/tickets/RaiseTicketModal";
 
 type SubStatus = "pending_acceptance" | "active" | "paused" | "cancelled" | "rejected";
 type InvoiceStatus = "draft" | "sent" | "paid" | "failed" | "refunded";
@@ -78,6 +79,9 @@ function ClientServicesInner() {
   const rzpScriptLoaded = useRef(false);
 
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showRaiseTicket, setShowRaiseTicket] = useState(false);
+  const [raiseTicketServiceId, setRaiseTicketServiceId] = useState<string | null>(null);
+  const [ordersForTickets, setOrdersForTickets] = useState<{ id?: string; _id?: string; orderId?: string; title?: string }[]>([]);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -318,6 +322,35 @@ function ClientServicesInner() {
     return sum + (s.customPrice ?? svc?.basePrice ?? 0);
   }, 0);
 
+  useEffect(() => {
+    if (!showRaiseTicket || !accessToken) return;
+    fetch("/api/orders", { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => r.json())
+      .then((d) => setOrdersForTickets(d.orders ?? []))
+      .catch(() => {});
+  }, [showRaiseTicket, accessToken]);
+
+  const handleCreateTicketFromServices = async (data: {
+    category: string;
+    relatedServiceId?: string;
+    relatedOrderId?: string;
+    subject: string;
+    description: string;
+    priority: string;
+    attachments: { url: string; name: string; size: number; mimeType: string }[];
+  }) => {
+    if (!accessToken) return;
+    const res = await fetch("/api/tickets", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const out = await res.json();
+    if (out.error) throw new Error(out.error);
+    setShowRaiseTicket(false);
+    setRaiseTicketServiceId(null);
+  };
+
   if (loading) return (
     <div className="space-y-4">
       {Array.from({ length: 3 }).map((_, i) => (
@@ -414,7 +447,13 @@ function ClientServicesInner() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {active.map((sub, i) => (
               <motion.div key={sub._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <ActiveCard sub={sub} onCancel={handleCancel} onPayDue={openPayment} payingId={payingId} />
+                <ActiveCard
+                  sub={sub}
+                  onCancel={handleCancel}
+                  onPayDue={openPayment}
+                  payingId={payingId}
+                  onRaiseTicket={() => { setRaiseTicketServiceId(sub._id); setShowRaiseTicket(true); }}
+                />
               </motion.div>
             ))}
           </div>
@@ -458,6 +497,20 @@ function ClientServicesInner() {
       )}
 
       {invoices.length > 0 && <InvoiceSection invoices={invoices} />}
+
+      <AnimatePresence>
+        {showRaiseTicket && (
+          <RaiseTicketModal
+            onClose={() => { setShowRaiseTicket(false); setRaiseTicketServiceId(null); }}
+            onSubmit={handleCreateTicketFromServices}
+            initialCategory="service_issue"
+            initialRelatedServiceId={raiseTicketServiceId ?? undefined}
+            clientServices={subs.map((s) => ({ _id: s._id, serviceId: s.serviceId, customPrice: s.customPrice ?? undefined }))}
+            clientOrders={ordersForTickets.map((o) => ({ _id: o.id ?? o._id ?? "", orderId: o.orderId, title: o.title }))}
+            accessToken={accessToken}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -537,9 +590,10 @@ function PendingCard({ sub, onReject, onPay, payingId }: {
   );
 }
 
-function ActiveCard({ sub, onCancel, onPayDue, payingId }: {
+function ActiveCard({ sub, onCancel, onPayDue, payingId, onRaiseTicket }: {
   sub: ClientSub; onCancel: (id: string, name: string) => void;
   onPayDue: (id: string, type: "renewal", amount: number) => void; payingId: string | null;
+  onRaiseTicket?: () => void;
 }) {
   const svc = sub.serviceId;
   if (!svc) return null;
@@ -580,6 +634,13 @@ function ActiveCard({ sub, onCancel, onPayDue, payingId }: {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {onRaiseTicket && (
+            <button
+              onClick={onRaiseTicket}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/10 transition-all">
+              <Ticket size={11} /> Raise Ticket
+            </button>
+          )}
           {isDue && (
             <button
               onClick={() => onPayDue(sub._id, "renewal", price)}
