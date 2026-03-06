@@ -79,10 +79,29 @@ npm run build
 
 # ── Copy static assets into standalone folder ────────────────
 echo "→ Copying static assets..."
-# _next/static = Nginx alias path (/_next/static/ → standalone/_next/static/)
+
+# Verify build output exists
+if [ ! -d ".next/static" ]; then
+  echo "✗ ERROR: .next/static not found — build may have failed"
+  exit 1
+fi
+
+# Clean and copy _next/static into standalone
 rm -rf .next/standalone/_next
-mkdir -p .next/standalone/_next
-cp -r .next/static .next/standalone/_next/static
+mkdir -p .next/standalone/_next/static
+cp -r .next/static/. .next/standalone/_next/static/
+
+CSS_COUNT=$(ls .next/standalone/_next/static/css/ 2>/dev/null | wc -l)
+JS_COUNT=$(ls .next/standalone/_next/static/chunks/ 2>/dev/null | wc -l)
+echo "   CSS files: $CSS_COUNT"
+echo "   JS chunks: $JS_COUNT"
+if [ "$CSS_COUNT" -eq 0 ]; then
+  echo "✗ WARNING: No CSS files copied! Nginx will serve unstyled pages."
+fi
+
+# Fix permissions so nginx (www-data) can read static files
+chmod -R 755 .next/standalone/_next/
+find .next/standalone/_next/ -type f -exec chmod 644 {} \;
 
 # Preserve runtime-uploaded logos before overwriting public/
 UPLOADS_BACKUP="/tmp/websevix_uploads_backup"
@@ -97,8 +116,10 @@ if [ -d "$UPLOADS_BACKUP" ]; then
   cp -r "$UPLOADS_BACKUP/." .next/standalone/public/uploads/ 2>/dev/null && echo "   Restored uploads/"
   rm -rf "$UPLOADS_BACKUP"
 fi
-echo "   CSS files: $(ls .next/standalone/_next/static/css/ 2>/dev/null | wc -l)"
-echo "   JS chunks: $(ls .next/standalone/_next/static/chunks/ 2>/dev/null | wc -l)"
+
+# Fix permissions for public folder too
+chmod -R 755 .next/standalone/public/
+find .next/standalone/public/ -type f -exec chmod 644 {} \;
 
 # ── Copy .env so Next.js can load it (standalone runs from .next/standalone) ─
 if [ -f "$APP_DIR/.env.production" ]; then

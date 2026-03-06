@@ -16,7 +16,6 @@ export async function POST(
     const auth = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401);
     const payload = await verifyAccessToken(auth);
-    if (payload.role === "admin") return jsonResponse({ error: "Forbidden" }, 403);
 
     const id = params.id;
     if (!mongoose.Types.ObjectId.isValid(id)) return jsonResponse({ error: "Invalid ticket" }, 400);
