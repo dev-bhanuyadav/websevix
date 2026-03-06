@@ -63,7 +63,7 @@ const OrderSchema = new Schema<IOrder>(
       default: "pending_review",
     },
     milestones: [MilestoneSchema],
-    placementFee:  { type: Number, default: 500 },
+    placementFee:  { type: Number, default: 1 },
     paymentStatus: { type: String, enum: ["paid", "pending"], default: "pending" },
     paymentId:     { type: String },
     assignedAdmin: { type: Schema.Types.ObjectId, ref: "User", default: null },

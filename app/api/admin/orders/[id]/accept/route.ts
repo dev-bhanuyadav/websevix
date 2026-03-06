@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import { jsonResponse } from "@/lib/api";
 import { verifyAdmin } from "@/lib/adminAuth";
 import { Order } from "@/models/Order";
+import { PaymentRequest } from "@/models/PaymentRequest";
 import { getPusher, orderChannel, PUSHER_EVENTS } from "@/lib/pusher";
 import mongoose from "mongoose";
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     }
 
     const body = (await request.json()) as AcceptBody;
-    const { title, milestones = [], message } = body;
+    const { title, advance, milestones = [], message } = body;
 
     const milestoneDocs = milestones.map((m, idx) => ({
       title: m.title,
@@ -58,6 +59,20 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       .lean();
 
     if (!order) return jsonResponse({ error: "Order not found" }, 404);
+
+    // Auto-create advance PaymentRequest if admin set an advance amount
+    if (advance && advance > 0) {
+      const clientId = (order.clientId as unknown as { _id: mongoose.Types.ObjectId })?._id
+        ?? order.clientId as unknown as mongoose.Types.ObjectId;
+      await PaymentRequest.create({
+        orderId:     order._id,
+        clientId:    clientId,
+        amount:      advance,
+        description: "Advance payment for project",
+        type:        "advance",
+        status:      "pending",
+      });
+    }
 
     try {
       await getPusher().trigger(

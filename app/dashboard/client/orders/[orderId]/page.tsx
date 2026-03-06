@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Package, MessageSquare, MapPin } from "lucide-react";
+import { ArrowLeft, Package, MessageSquare, MapPin, CreditCard, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { MilestoneTracker } from "@/components/dashboard/MilestoneTracker";
 import type { IOrder, IMilestone } from "@/models/Order";
@@ -53,14 +53,89 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [tab,     setTab]     = useState<Tab>(initialTab);
 
+  // Payment requests
+  interface PayReq { _id: string; amount: number; description: string; type: string; status: string; createdAt: string; }
+  const [payRequests, setPayRequests] = useState<PayReq[]>([]);
+  const [payingId,    setPayingId]    = useState<string | null>(null);
+  const [payError,    setPayError]    = useState<string | null>(null);
+
+  const loadPayRequests = useCallback(async (orderId: string) => {
+    if (!accessToken) return;
+    const res = await fetch(`/api/payments/requests?orderId=${orderId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).catch(() => null);
+    if (!res?.ok) return;
+    const d = await res.json() as { requests?: PayReq[] };
+    setPayRequests(d.requests ?? []);
+  }, [accessToken]);
+
+  const handlePayNow = async (pr: PayReq) => {
+    if (!accessToken) return;
+    setPayingId(pr._id);
+    setPayError(null);
+    try {
+      // Create Razorpay order for this payment request
+      const res = await fetch(`/api/payments/requests/${pr._id}/pay`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const d = await res.json() as { success?: boolean; order?: { id: string; amount: number; currency: string; _mock?: boolean }; error?: string };
+      if (!d.success || !d.order) { setPayError(d.error ?? "Failed to initiate payment"); setPayingId(null); return; }
+
+      if (d.order._mock) {
+        // Mock: mark paid directly
+        await fetch(`/api/payments/requests/${pr._id}/verify`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ razorpay_order_id: d.order.id, razorpay_payment_id: "mock_pay", razorpay_signature: "", _mock: true }),
+        });
+        if (order) loadPayRequests(order.id);
+        setPayingId(null);
+        return;
+      }
+
+      // Real Razorpay checkout
+      const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      const rzp = new (window as unknown as { Razorpay: new (opts: unknown) => { open(): void } }).Razorpay({
+        key:         keyId,
+        order_id:    d.order.id,
+        amount:      d.order.amount,
+        currency:    d.order.currency ?? "INR",
+        name:        "Websevix",
+        description: pr.description || `${pr.type} payment`,
+        image:       "/logo.png",
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          const vRes = await fetch(`/api/payments/requests/${pr._id}/verify`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify(response),
+          });
+          const vd = await vRes.json() as { success?: boolean; error?: string };
+          if (vd.success && order) loadPayRequests(order.id);
+          else setPayError(vd.error ?? "Verification failed");
+          setPayingId(null);
+        },
+        modal: { ondismiss: () => setPayingId(null) },
+        theme: { color: "#6366F1" },
+      });
+      rzp.open();
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Payment failed");
+      setPayingId(null);
+    }
+  };
+
   useEffect(() => {
     if (!orderId || !accessToken) return;
     fetch(`/api/orders/${orderId}`, { headers: { Authorization: `Bearer ${accessToken}` } })
       .then(r => r.json())
-      .then(d => setOrder(d.order))
+      .then(d => {
+        setOrder(d.order);
+        if (d.order?.id) loadPayRequests(d.order.id);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [orderId, accessToken]);
+  }, [orderId, accessToken, loadPayRequests]);
 
   if (loading) {
     return (
@@ -211,6 +286,73 @@ export default function OrderDetailPage() {
                   <MapPin size={15} className="text-indigo-400" /> Project Brief
                 </h2>
                 <p className="text-sm text-silver leading-relaxed">{summary.description}</p>
+              </div>
+            )}
+
+            {/* ── Pending Payment Requests ── */}
+            {payRequests.filter(pr => pr.status === "pending").length > 0 && (
+              <motion.div
+                className="rounded-2xl border p-5 space-y-4"
+                style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.18)" }}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              >
+                <h2 className="font-display font-semibold text-amber-300 text-sm flex items-center gap-2">
+                  <CreditCard size={15} className="text-amber-400" />
+                  Payment Pending
+                </h2>
+
+                {payError && (
+                  <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg">
+                    <AlertCircle size={13} /> {payError}
+                  </div>
+                )}
+
+                {payRequests.filter(pr => pr.status === "pending").map(pr => (
+                  <div
+                    key={pr._id}
+                    className="flex items-center justify-between gap-4 p-4 rounded-xl"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-snow capitalize">
+                        {pr.type} Payment — ₹{pr.amount.toLocaleString("en-IN")}
+                      </p>
+                      {pr.description && <p className="text-xs text-slate mt-0.5">{pr.description}</p>}
+                      <p className="text-[11px] text-slate/60 mt-1">
+                        Requested {new Date(pr.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handlePayNow(pr)}
+                      disabled={payingId === pr._id}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold flex-shrink-0 transition-all disabled:opacity-60 hover:opacity-90"
+                      style={{ background: "linear-gradient(135deg,#F59E0B,#D97706)", color: "#000" }}
+                    >
+                      {payingId === pr._id
+                        ? <><Loader2 size={13} className="animate-spin" /> Processing…</>
+                        : <><CreditCard size={13} /> Pay ₹{pr.amount.toLocaleString("en-IN")}</>
+                      }
+                    </button>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Paid requests summary */}
+            {payRequests.filter(pr => pr.status === "paid").length > 0 && (
+              <div className="rounded-2xl border border-white/[0.07] p-4"
+                style={{ background: "rgba(255,255,255,0.02)" }}>
+                <p className="text-xs text-slate uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <CheckCircle2 size={12} className="text-emerald-400" /> Paid Payments
+                </p>
+                <div className="space-y-2">
+                  {payRequests.filter(pr => pr.status === "paid").map(pr => (
+                    <div key={pr._id} className="flex items-center justify-between text-sm">
+                      <span className="text-silver capitalize">{pr.type} — ₹{pr.amount.toLocaleString("en-IN")}</span>
+                      <span className="text-xs text-emerald-400 font-semibold">✓ Paid</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

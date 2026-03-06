@@ -145,6 +145,58 @@ export default function AdminOrderDetailPage() {
   // Milestone actions
   const [milestoneLoading, setMilestoneLoading] = useState<string | null>(null);
 
+  // Request payment panel
+  const [payAmount, setPayAmount] = useState("");
+  const [payDesc, setPayDesc] = useState("");
+  const [payType, setPayType] = useState<"advance" | "milestone" | "final">("advance");
+  const [sendingPay, setSendingPay] = useState(false);
+  const [payResult, setPayResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  // Existing payment requests list
+  interface PayReq { _id: string; amount: number; description: string; type: string; status: string; createdAt: string; }
+  const [payRequests, setPayRequests] = useState<PayReq[]>([]);
+
+  const loadPayRequests = async () => {
+    if (!accessToken || !order) return;
+    const res = await fetch(`/api/payments/requests?orderId=${order._id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).catch(() => null);
+    if (!res?.ok) return;
+    const d = await res.json() as { requests?: PayReq[] };
+    setPayRequests(d.requests ?? []);
+  };
+
+  const sendPaymentRequest = async () => {
+    if (!accessToken || !order || !payAmount) return;
+    setSendingPay(true);
+    setPayResult(null);
+    try {
+      const res = await fetch("/api/admin/payments/request", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId:   order._id,
+          clientId:  typeof order.clientId === "object" ? order.clientId._id : order.clientId,
+          amount:    parseFloat(payAmount),
+          description: payDesc.trim() || `${payType.charAt(0).toUpperCase() + payType.slice(1)} payment`,
+          type:      payType,
+        }),
+      });
+      const d = await res.json() as { success?: boolean; error?: string };
+      if (d.success) {
+        setPayResult({ ok: true, msg: "Payment request sent to client!" });
+        setPayAmount(""); setPayDesc("");
+        loadPayRequests();
+      } else {
+        setPayResult({ ok: false, msg: d.error ?? "Failed to send" });
+      }
+    } catch {
+      setPayResult({ ok: false, msg: "Network error" });
+    } finally {
+      setSendingPay(false);
+    }
+  };
+
   useEffect(() => {
     if (!accessToken || !orderId) return;
     setLoading(true);
@@ -159,6 +211,9 @@ export default function AdminOrderDetailPage() {
       .catch(() => setError("Failed to load order"))
       .finally(() => setLoading(false));
   }, [accessToken, orderId]);
+
+  // Load payment requests whenever order is set
+  useEffect(() => { if (order) loadPayRequests(); }, [order?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAccept = async () => {
     if (!accessToken) return;
@@ -563,6 +618,88 @@ export default function AdminOrderDetailPage() {
             >
               Mark Order Complete
             </button>
+          </div>
+
+          {/* ── Request Payment from Client ── */}
+          <div
+            className="rounded-2xl p-5 space-y-4"
+            style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            <h3 className="text-sm font-semibold font-display text-snow flex items-center gap-2">
+              <CreditCard size={15} className="text-indigo-400" />
+              Request Payment
+            </h3>
+
+            {/* Type selector */}
+            <div className="flex gap-2">
+              {(["advance", "milestone", "final"] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setPayType(t)}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
+                  style={{
+                    background: payType === t ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.04)",
+                    border:     payType === t ? "1px solid rgba(99,102,241,0.35)" : "1px solid rgba(255,255,255,0.07)",
+                    color:      payType === t ? "#A5B4FC" : "#64748B",
+                  }}
+                >{t}</button>
+              ))}
+            </div>
+
+            <input
+              type="number"
+              placeholder="Amount (₹)"
+              value={payAmount}
+              onChange={e => setPayAmount(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm text-snow rounded-xl outline-none placeholder:text-slate"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
+            />
+            <input
+              type="text"
+              placeholder="Description (optional)"
+              value={payDesc}
+              onChange={e => setPayDesc(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm text-snow rounded-xl outline-none placeholder:text-slate"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
+            />
+
+            <AnimatePresence>
+              {payResult && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className={`text-xs font-medium px-3 py-2 rounded-lg ${payResult.ok ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"}`}
+                >{payResult.msg}</motion.p>
+              )}
+            </AnimatePresence>
+
+            <button
+              onClick={sendPaymentRequest}
+              disabled={sendingPay || !payAmount}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: "linear-gradient(135deg,#6366F1,#4F46E5)", color: "#fff" }}
+            >
+              {sendingPay ? <Loader2 size={13} className="animate-spin" /> : <CreditCard size={13} />}
+              Send Payment Request
+            </button>
+
+            {/* Existing requests */}
+            {payRequests.length > 0 && (
+              <div className="space-y-2 pt-1 border-t border-white/[0.06]">
+                <p className="text-[11px] text-slate uppercase tracking-wider">Sent Requests</p>
+                {payRequests.map(pr => (
+                  <div key={pr._id} className="flex items-center justify-between py-2 px-3 rounded-lg"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div>
+                      <p className="text-xs font-medium text-snow capitalize">{pr.type} — ₹{pr.amount.toLocaleString("en-IN")}</p>
+                      {pr.description && <p className="text-[11px] text-slate">{pr.description}</p>}
+                    </div>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      pr.status === "paid" ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                    }`}>{pr.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

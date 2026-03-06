@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     await verifyAccessToken(auth);
 
     const body         = await request.json().catch(() => ({}));
-    const amountRupees = Number(body.amount) || 500;
+    const amountRupees = Number(body.amount) || 1;
     const currency     = body.currency ?? "INR";
     const amountPaise  = Math.round(amountRupees * 100);
 
