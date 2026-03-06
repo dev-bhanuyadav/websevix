@@ -134,7 +134,7 @@ export default function ClientTicketDetailPage() {
       >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <span className="font-mono text-indigo-400 font-semibold">#{ticket.ticketId}</span>
+            <span className="font-mono text-indigo-400 font-semibold">#{String(ticket.ticketId)}</span>
             <TicketStatusBadge status={status as "open" | "in_progress" | "waiting_client" | "resolved" | "closed" | "reopened"} />
           </div>
         </div>
