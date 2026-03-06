@@ -190,7 +190,6 @@ export default function ClientTicketDetailPage() {
         <TicketReplyInput
           onSend={handleReply}
           disabled={!!actionLoading}
-          accessToken={accessToken}
         />
       )}
 

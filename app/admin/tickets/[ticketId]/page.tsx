@@ -178,7 +178,6 @@ export default function AdminTicketDetailPage() {
                 onSend={handleReply}
                 disabled={sendingReply}
                 placeholder={internalNote ? "Internal note..." : "Reply to client..."}
-                accessToken={accessToken}
               />
             </div>
           )}
