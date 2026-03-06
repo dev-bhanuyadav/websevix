@@ -176,7 +176,7 @@ export default function AdminOrderDetailPage() {
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId:   order._id,
-          clientId:  typeof order.clientId === "object" ? order.clientId._id : order.clientId,
+          clientId:  order.clientId == null ? "" : (typeof order.clientId === "object" ? order.clientId._id : order.clientId),
           amount:    parseFloat(payAmount),
           description: payDesc.trim() || `${payType.charAt(0).toUpperCase() + payType.slice(1)} payment`,
           type:      payType,

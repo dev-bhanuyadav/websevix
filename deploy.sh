@@ -24,7 +24,7 @@ else
   echo "→ Cloning repo..."
   git clone -b "$BRANCH" "$REPO" "$APP_DIR"
   cd "$APP_DIR"
-fi
+  fi
 
 # ── Check/Create .env.production ─────────────────────────────
 if [ ! -f "$APP_DIR/.env.production" ]; then
