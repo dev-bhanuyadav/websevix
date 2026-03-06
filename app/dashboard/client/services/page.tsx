@@ -507,7 +507,6 @@ function ClientServicesInner() {
             initialRelatedServiceId={raiseTicketServiceId ?? undefined}
             clientServices={subs.map((s) => ({ _id: s._id, serviceId: s.serviceId, customPrice: s.customPrice ?? undefined }))}
             clientOrders={ordersForTickets.map((o) => ({ _id: o.id ?? o._id ?? "", orderId: o.orderId, title: o.title }))}
-            accessToken={accessToken}
           />
         )}
       </AnimatePresence>

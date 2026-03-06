@@ -1,17 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  X,
-  Monitor,
-  Package,
-  CreditCard,
-  User,
-  HelpCircle,
-  Loader2,
-  Paperclip,
-} from "lucide-react";
+import { X, Monitor, Package, CreditCard, User, HelpCircle, Loader2 } from "lucide-react";
 
 export type TicketCategory = "service_issue" | "order_issue" | "billing" | "account" | "general";
 export type TicketPriority = "low" | "medium" | "high" | "critical";
@@ -43,7 +34,6 @@ interface RaiseTicketModalProps {
   initialRelatedOrderId?: string;
   clientServices?: ServiceOption[];
   clientOrders?: OrderOption[];
-  accessToken?: string | null;
 }
 
 export function RaiseTicketModal({
@@ -54,7 +44,6 @@ export function RaiseTicketModal({
   initialRelatedOrderId,
   clientServices = [],
   clientOrders = [],
-  accessToken,
 }: RaiseTicketModalProps) {
   const [step, setStep] = useState<1 | 2>(initialCategory ? 2 : 1);
   const [category, setCategory] = useState<TicketCategory>(initialCategory ?? "general");
@@ -63,10 +52,8 @@ export function RaiseTicketModal({
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TicketPriority>("medium");
-  const [attachments, setAttachments] = useState<{ url: string; name: string; size: number; mimeType: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
     if (!subject.trim()) { setError("Subject is required"); return; }
@@ -81,7 +68,7 @@ export function RaiseTicketModal({
         subject: subject.trim().slice(0, 150),
         description: description.trim().slice(0, 2000),
         priority,
-        attachments,
+        attachments: [],
       });
       onClose();
     } catch (e) {
@@ -230,45 +217,6 @@ export function RaiseTicketModal({
                     className="w-full px-3 py-2 rounded-lg text-sm text-snow placeholder:text-slate bg-white/5 border border-white/10 outline-none resize-none"
                   />
                   <p className="text-[10px] text-slate mt-0.5">{description.length} / 2000</p>
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate block mb-1">Attachments (max 5, 10MB each)</label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-                    onChange={async (e) => {
-                      const files = e.target.files;
-                      if (!files?.length) return;
-                      for (let i = 0; i < Math.min(files.length, 5 - attachments.length); i++) {
-                        const file = files[i];
-                        if (file.size > 10 * 1024 * 1024) continue;
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        const res = await fetch("/api/upload", {
-                          method: "POST",
-                          headers: { Authorization: `Bearer ${accessToken}` },
-                          body: formData,
-                        });
-                        const d = await res.json();
-                        if (d.file) setAttachments((a) => [...a, { url: d.file.url, name: d.file.name, size: d.file.size, mimeType: d.file.mimeType }]);
-                      }
-                      e.target.value = "";
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate border border-white/10 hover:bg-white/5"
-                  >
-                    <Paperclip size={14} /> Attach Files
-                  </button>
-                  {attachments.length > 0 && (
-                    <p className="text-xs text-slate mt-1">{attachments.length} file(s) attached</p>
-                  )}
                 </div>
 
                 {error && <p className="text-sm text-red-400">{error}</p>}

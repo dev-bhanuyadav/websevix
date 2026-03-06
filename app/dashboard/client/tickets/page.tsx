@@ -142,7 +142,6 @@ export default function ClientTicketsPage() {
             onSubmit={handleCreateTicket}
             clientServices={services}
             clientOrders={orders.map((o) => ({ _id: o.id ?? o._id ?? "", orderId: o.orderId, title: o.title }))}
-            accessToken={accessToken}
           />
         )}
       </AnimatePresence>

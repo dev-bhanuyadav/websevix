@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const auth = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!auth) return jsonResponse({ error: "Unauthorized" }, 401);
     const payload = await verifyAccessToken(auth);
-    if (payload.role !== "client" && payload.role !== "developer") return jsonResponse({ error: "Forbidden" }, 403);
+    if (payload.role === "admin") return jsonResponse({ error: "Forbidden" }, 403);
 
     const body = await request.json() as {
       category: string;
