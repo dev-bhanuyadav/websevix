@@ -130,7 +130,7 @@ export default function AdminTicketsPage() {
                       className="border-b border-white/5 hover:bg-white/[0.02]"
                       style={t.isSlaBreach ? { background: "rgba(239,68,68,0.06)" } : {}}
                     >
-                      <td className="p-3 font-mono text-indigo-400">#{t.ticketId}</td>
+                      <td className="p-3 font-mono text-indigo-400">#{String(t.ticketId)}</td>
                       <td className="p-3 text-silver">{clientName}</td>
                       <td className="p-3 text-snow max-w-[200px] truncate">{String(t.subject)}</td>
                       <td className="p-3 text-slate">{CATEGORY_LABELS[String(t.category)] ?? String(t.category)}</td>
