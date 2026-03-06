@@ -143,7 +143,7 @@ export default function AdminTicketDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-2xl border border-white/10 p-5" style={{ background: "rgba(255,255,255,0.03)" }}>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-indigo-400 font-semibold">#{ticket.ticketId}</span>
+              <span className="font-mono text-indigo-400 font-semibold">#{String(ticket.ticketId)}</span>
               <TicketStatusBadge status={status as "open" | "in_progress" | "waiting_client" | "resolved" | "closed" | "reopened"} />
             </div>
             <h1 className="text-xl font-display font-bold text-snow mt-2">{String(ticket.subject)}</h1>
